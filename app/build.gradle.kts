@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.hilt)
 }
 
 android {
@@ -49,6 +50,10 @@ dependencies {
     implementation(libs.appcompat)
     implementation(libs.material)
     implementation(libs.core.splashscreen)
+    implementation(libs.hilt.android)
+    annotationProcessor(libs.hilt.compiler)
+    implementation(libs.lifecycle.viewmodel)
+    implementation(libs.lifecycle.livedata)
     testImplementation(libs.junit)
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.ext.junit)
