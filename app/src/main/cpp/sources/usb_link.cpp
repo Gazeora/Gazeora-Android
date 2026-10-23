@@ -160,6 +160,10 @@ void UsbLink::Talk() {
 
 void UsbLink::Say(GzfType type, int lossPerMille) {
     auto message = GzfMessage(type, lossPerMille);
+    Write(std::vector<uint8_t>(message.begin(), message.end()));
+}
+
+void UsbLink::Write(const std::vector<uint8_t>& message) {
     std::lock_guard<std::mutex> lock(m_writeMutex);
     if (m_fd >= 0) {
         // A failure: the reader notices the cable went.

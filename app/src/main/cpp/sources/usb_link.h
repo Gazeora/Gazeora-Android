@@ -3,6 +3,7 @@
 #include <atomic>
 #include <cstdint>
 #include <mutex>
+#include <vector>
 
 #include "protocols/gzf.h"
 #include "sources/stream_source.h"
@@ -27,6 +28,8 @@ public:
     // sink it replaced gets no more calls.
     void SetSink(SourceSink* sink);
     void RequestKeyFrame() { m_keyFrameWanted = true; }
+    // One whole GZF1 message to the PC; dropped while the cable is out.
+    void Write(const std::vector<uint8_t>& message);
 
 private:
     UsbLink() = default;
