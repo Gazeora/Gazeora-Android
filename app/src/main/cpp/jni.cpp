@@ -1,4 +1,4 @@
-// The Java side's way in: NativePlayer.java and Discovery.java.
+// The Java side's way in: NativePlayer.java, NativeDiscovery.java and NativeUsbLink.java.
 
 #include <android/native_window_jni.h>
 #include <jni.h>
@@ -60,6 +60,7 @@ public:
         m_onStatus = env->GetMethodID(type, "onNativeStatus", "(ILjava/lang/String;)V");
         m_onVideoSize = env->GetMethodID(type, "onNativeVideoSize", "(II)V");
         m_onFirstFrame = env->GetMethodID(type, "onNativeFirstFrame", "()V");
+        m_onPicture = env->GetMethodID(type, "onNativePicture", "(ZII)V");
         env->DeleteLocalRef(type);
     }
     ~JavaPlayerListener() override { Env()->DeleteGlobalRef(m_player); }
@@ -86,12 +87,30 @@ public:
         ClearException(env);
     }
 
+    void OnPicture(bool vr, int width, int height) override {
+        JNIEnv* env = Env();
+        env->CallVoidMethod(m_player, m_onPicture, jboolean(vr), jint(width), jint(height));
+        ClearException(env);
+    }
+
 private:
     jobject m_player;
     jmethodID m_onStatus;
     jmethodID m_onVideoSize;
     jmethodID m_onFirstFrame;
+    jmethodID m_onPicture;
 };
+
+// NativePlayer's pointer ids are the wire's (protocols/pointer_message.h).
+bool ToPointerEvent(jint action, jint button, PointerEvent& event) {
+    if (action < jint(PointerAction::Move) || action > jint(PointerAction::Click) ||
+        button < jint(PointerButton::Left) || button > jint(PointerButton::Right)) {
+        return false;
+    }
+    event.action = PointerAction(action);
+    event.button = PointerButton(button);
+    return true;
+}
 
 struct PlayerHandle {
     std::unique_ptr<JavaPlayerListener> listener;
@@ -116,7 +135,7 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void*) {
     return JNI_VERSION_1_6;
 }
 
-JNIEXPORT jlong JNICALL Java_com_gazeora_gazeora_NativePlayer_nativeStart(
+JNIEXPORT jlong JNICALL Java_com_gazeora_gazeora_feature_player_data_remote_NativePlayer_nativeStart(
     JNIEnv* env, jobject self, jobject surface, jstring protocol, jstring host, jint port,
     jstring path, jstring avcDecoder, jstring hevcDecoder, jboolean avcLowLatency,
     jboolean hevcLowLatency) {
@@ -142,8 +161,8 @@ JNIEXPORT jlong JNICALL Java_com_gazeora_gazeora_NativePlayer_nativeStart(
     return reinterpret_cast<jlong>(handle);
 }
 
-JNIEXPORT void JNICALL Java_com_gazeora_gazeora_NativePlayer_nativeRelease(JNIEnv*, jclass,
-                                                                         jlong pointer) {
+JNIEXPORT void JNICALL Java_com_gazeora_gazeora_feature_player_data_remote_NativePlayer_nativeRelease(
+    JNIEnv*, jclass, jlong pointer) {
     auto* handle = reinterpret_cast<PlayerHandle*>(pointer);
     if (handle) {
         handle->player.reset();
@@ -151,17 +170,33 @@ JNIEXPORT void JNICALL Java_com_gazeora_gazeora_NativePlayer_nativeRelease(JNIEn
     }
 }
 
-JNIEXPORT jboolean JNICALL Java_com_gazeora_gazeora_NativePlayer_nativeUsbOpen(JNIEnv*, jclass) {
+JNIEXPORT void JNICALL Java_com_gazeora_gazeora_feature_player_data_remote_NativePlayer_nativeSendPointer(
+    JNIEnv*, jclass, jlong pointer, jint action, jint button, jfloat x, jfloat y,
+    jint wheelVertical, jint wheelHorizontal) {
+    auto* handle = reinterpret_cast<PlayerHandle*>(pointer);
+    PointerEvent event;
+    if (!handle || !ToPointerEvent(action, button, event)) {
+        return;
+    }
+    event.x = x;
+    event.y = y;
+    event.wheelVertical = wheelVertical;
+    event.wheelHorizontal = wheelHorizontal;
+    handle->player->SendPointer(event);
+}
+
+JNIEXPORT jboolean JNICALL Java_com_gazeora_gazeora_core_usb_data_NativeUsbLink_nativeIsOpen(
+    JNIEnv*, jclass) {
     return UsbLink::Get().Open();
 }
 
-JNIEXPORT void JNICALL Java_com_gazeora_gazeora_NativePlayer_nativeUsbAttach(JNIEnv*, jclass,
-                                                                           jint fd) {
+JNIEXPORT void JNICALL Java_com_gazeora_gazeora_core_usb_data_NativeUsbLink_nativeAttach(
+    JNIEnv*, jclass, jint fd) {
     UsbLink::Get().Attach(fd);
 }
 
-JNIEXPORT jlong JNICALL Java_com_gazeora_gazeora_Discovery_nativeStart(JNIEnv* env, jobject self,
-                                                                      jboolean emulator) {
+JNIEXPORT jlong JNICALL Java_com_gazeora_gazeora_core_discovery_data_remote_NativeDiscovery_nativeStart(
+    JNIEnv* env, jobject self, jboolean emulator) {
     auto* handle = new DiscoveryHandle();
     handle->discovery = env->NewGlobalRef(self);
     jclass type = env->GetObjectClass(self);
@@ -193,8 +228,8 @@ JNIEXPORT jlong JNICALL Java_com_gazeora_gazeora_Discovery_nativeStart(JNIEnv* e
     return reinterpret_cast<jlong>(handle);
 }
 
-JNIEXPORT void JNICALL Java_com_gazeora_gazeora_Discovery_nativeStop(JNIEnv* env, jclass,
-                                                                    jlong pointer) {
+JNIEXPORT void JNICALL Java_com_gazeora_gazeora_core_discovery_data_remote_NativeDiscovery_nativeStop(
+    JNIEnv* env, jclass, jlong pointer) {
     auto* handle = reinterpret_cast<DiscoveryHandle*>(pointer);
     if (handle) {
         handle->search.reset();
