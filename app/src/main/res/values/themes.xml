@@ -1,0 +1,62 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Matches the desktop launcher, which is dark only and has no title bar. -->
+    <style name="Theme.Gazeora" parent="Theme.MaterialComponents.NoActionBar">
+        <item name="colorPrimary">@color/gazeora_accent</item>
+        <item name="colorPrimaryVariant">@color/gazeora_accent_hover</item>
+        <item name="colorOnPrimary">@color/gazeora_on_accent</item>
+        <item name="colorSecondary">@color/gazeora_accent_end</item>
+        <item name="colorSecondaryVariant">@color/gazeora_accent_end</item>
+        <item name="colorOnSecondary">@color/gazeora_window_bg</item>
+        <item name="colorSurface">@color/gazeora_card_bg</item>
+        <item name="colorOnSurface">@color/gazeora_text</item>
+        <item name="colorError">@color/gazeora_danger</item>
+        <item name="colorOnError">@color/gazeora_on_accent</item>
+        <item name="android:colorBackground">@color/gazeora_window_bg</item>
+        <item name="colorOnBackground">@color/gazeora_text</item>
+        <item name="android:windowBackground">@color/gazeora_window_bg</item>
+
+        <item name="android:textColorPrimary">@color/gazeora_text</item>
+        <item name="android:textColorSecondary">@color/gazeora_text_dim</item>
+        <item name="android:textColorTertiary">@color/gazeora_text_faint</item>
+        <item name="android:textColorHint">@color/gazeora_text_faint</item>
+        <item name="android:textColorHighlight">#597C5CFF</item>  <!-- accent at 35% -->
+        <item name="colorControlNormal">@color/gazeora_text_dim</item>
+        <item name="colorControlHighlight">#337C5CFF</item>  <!-- accent at 20% -->
+
+        <!-- Controls round at 6dp, cards and dialogs at 10dp, as on the desktop. -->
+        <item name="shapeAppearanceSmallComponent">@style/ShapeAppearance.Gazeora.Small</item>
+        <item name="shapeAppearanceMediumComponent">@style/ShapeAppearance.Gazeora.Medium</item>
+        <item name="shapeAppearanceLargeComponent">@style/ShapeAppearance.Gazeora.Medium</item>
+
+        <!-- Only applies below Android 15; from 15 the app draws behind the system bars. -->
+        <item name="android:statusBarColor">@color/gazeora_window_bg</item>
+        <item name="android:navigationBarColor">@color/gazeora_window_bg</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+
+    <!-- Section headings on the home screen. -->
+    <style name="TextAppearance.Gazeora.Section" parent="">
+        <item name="android:textColor">@color/gazeora_text_dim</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:letterSpacing">0.08</item>
+        <item name="android:textAllCaps">true</item>
+    </style>
+
+    <style name="ShapeAppearance.Gazeora.Small" parent="ShapeAppearance.MaterialComponents.SmallComponent">
+        <item name="cornerSize">6dp</item>
+    </style>
+
+    <style name="ShapeAppearance.Gazeora.Medium" parent="ShapeAppearance.MaterialComponents.MediumComponent">
+        <item name="cornerSize">10dp</item>
+    </style>
+
+    <!-- The splash: the logo and name on the brand background. MainActivity holds it briefly,
+         then fades it out. -->
+    <style name="Theme.Gazeora.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/gazeora_window_bg</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_logo</item>
+        <item name="postSplashScreenTheme">@style/Theme.Gazeora</item>
+    </style>
+</resources>

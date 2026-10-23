@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Gazeora on the PC, once it has switched this phone to USB accessory mode
+     (Gazeora: usb_accessory_output.h). -->
+<resources>
+    <usb-accessory
+        manufacturer="Gazeora"
+        model="Gazeora Stream" />
+</resources>

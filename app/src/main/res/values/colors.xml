@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The desktop launcher's palette (Gazeora/apps/gazeora/src/ui/theme.h): navy surfaces, and a
+     violet accent that fades to cyan on primary actions. -->
+<resources>
+    <color name="gazeora_accent">#FF7C5CFF</color>
+    <color name="gazeora_accent_hover">#FF9278FF</color>
+    <color name="gazeora_accent_end">#FF38BDF8</color>
+    <color name="gazeora_on_accent">#FFFFFFFF</color>
+    <color name="gazeora_window_bg">#FF12141E</color>
+    <color name="gazeora_sidebar_bg">#FF0D0E16</color>
+    <color name="gazeora_card_bg">#FF1B1E2C</color>
+    <color name="gazeora_card_hover">#FF232738</color>
+    <color name="gazeora_inset">#FF141621</color>
+    <color name="gazeora_secondary">#FF2A2E42</color>
+    <color name="gazeora_secondary_hover">#FF363B52</color>
+    <color name="gazeora_border">#FF343950</color>
+    <color name="gazeora_disabled">#FF282B3C</color>
+    <color name="gazeora_text">#FFECEEF6</color>
+    <color name="gazeora_text_dim">#FF989EB6</color>
+    <color name="gazeora_text_faint">#FF646A82</color>
+    <color name="gazeora_danger">#FFF45670</color>
+    <color name="gazeora_danger_hover">#FFFA7088</color>
+    <color name="gazeora_warning">#FFFABE46</color>
+</resources>
