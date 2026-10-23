@@ -29,6 +29,7 @@ Player::~Player() {
     // The source first, so no frames arrive at a decoder that's gone; the decoder can still
     // ask the source for a key frame until it's gone too. The renderer outlives the decoder
     // drawing into it, and the window outlives both.
+    m_pointer.reset();
     if (m_source) {
         m_source->Stop();
     }
@@ -52,8 +53,15 @@ bool Player::Start(const std::string& protocol, const std::string& host, uint16_
     } else {
         return false;
     }
+    m_pointer = CreatePointerSender(protocol, host);
     m_source->Start();
     return true;
+}
+
+void Player::SendPointer(const PointerEvent& event) {
+    if (m_pointer) {
+        m_pointer->Send(event);
+    }
 }
 
 void Player::OnFrame(AccessUnit&& frame) { m_decoder->Submit(std::move(frame)); }
@@ -66,12 +74,29 @@ void Player::OnVideoSize(int width, int height) {
     if (!m_renderer) {
         m_listener.OnVideoSize(width, height);
     }
+    std::unique_lock<std::mutex> lock(m_pictureMutex);
+    if (width == m_width && height == m_height) {
+        return;
+    }
+    m_width = width;
+    m_height = height;
+    bool vr = m_vr;
+    lock.unlock();
+    m_listener.OnPicture(vr, width, height);
 }
 
 void Player::OnFrameQueued(int64_t presentationUs, const ViewInfo& view) {
     if (m_renderer) {
         m_renderer->Expect(presentationUs, view);
     }
+    std::unique_lock<std::mutex> lock(m_pictureMutex);
+    if (view.vr == m_vr) {
+        return;
+    }
+    m_vr = view.vr;
+    int width = m_width, height = m_height;
+    lock.unlock();
+    m_listener.OnPicture(view.vr, width, height);
 }
 
 void Player::OnFirstFrame() { m_listener.OnFirstFrame(); }

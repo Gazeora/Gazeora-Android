@@ -3,8 +3,10 @@
 #include <android/native_window.h>
 
 #include <memory>
+#include <mutex>
 #include <string>
 
+#include "pointer/pointer_sender.h"
 #include "sources/stream_source.h"
 #include "video_decoder.h"
 #include "video_renderer.h"
@@ -26,6 +28,9 @@ public:
         // should fill the screen, as the renderer fits the picture in itself.
         virtual void OnVideoSize(int width, int height) = 0;
         virtual void OnFirstFrame() = 0;
+        // How the picture is shown: for a VR viewer or flat, and its size; again whenever
+        // either changes. Touches only make sense on a flat one.
+        virtual void OnPicture(bool vr, int width, int height) = 0;
     };
 
     // Takes over `window`'s reference.
@@ -39,6 +44,8 @@ public:
     // False for a protocol it doesn't know.
     bool Start(const std::string& protocol, const std::string& host, uint16_t port,
                const std::string& path);
+    // A touch for the PC's mouse, on the way the stream came. Doesn't block.
+    void SendPointer(const PointerEvent& event);
 
 private:
     void OnFrame(AccessUnit&& frame) override;
@@ -54,6 +61,12 @@ private:
     std::unique_ptr<VideoRenderer> m_renderer;  // null when the decoder draws straight to it
     std::unique_ptr<VideoDecoder> m_decoder;
     std::unique_ptr<StreamSource> m_source;
+    std::unique_ptr<PointerSender> m_pointer;
+
+    std::mutex m_pictureMutex;
+    bool m_vr = false;
+    int m_width = 0;
+    int m_height = 0;
 };
 
 }  // namespace gazeora
