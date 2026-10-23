@@ -18,7 +18,14 @@ constexpr size_t kGzfMaxDatagram = 1400;
 // How often the player says hello; the PC drops a player silent for 5 s.
 constexpr int kGzfHelloEveryMs = 1000;
 
-enum class GzfType : uint8_t { Frame = 1, Hello = 2, KeyFrameRequest = 3, Bye = 4 };
+// Pointer: a touch for the PC's mouse (pointer_message.h).
+enum class GzfType : uint8_t {
+    Frame = 1,
+    Hello = 2,
+    KeyFrameRequest = 3,
+    Bye = 4,
+    Pointer = 5,
+};
 
 constexpr uint8_t kGzfKeyFrame = 1;
 constexpr uint8_t kGzfH265 = 2;

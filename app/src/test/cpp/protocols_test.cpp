@@ -7,6 +7,7 @@
 #include "protocols/discovery_reply.h"
 #include "protocols/frame_assembler.h"
 #include "protocols/gzf.h"
+#include "protocols/pointer_message.h"
 #include "protocols/rtp_depacketizer.h"
 #include "protocols/rtsp_message.h"
 #include "protocols/ts_demuxer.h"
@@ -147,6 +148,39 @@ TEST(GzfTest, HeaderRoundTrips) {
     ASSERT_TRUE(GzfHeader::Read(hello.data(), hello.size(), read));
     EXPECT_EQ(read.type, uint8_t(GzfType::Hello));
     EXPECT_EQ(read.lossPerMille, 1000);  // clamped
+}
+
+TEST(PointerMessageTest, IsAGzfMessageWithItsPayload) {
+    PointerEvent event;
+    event.action = PointerAction::Scroll;
+    event.x = 1.0f;
+    event.y = 0.5f;
+    event.wheelVertical = -240;
+    event.wheelHorizontal = 120;
+    Bytes message = PointerMessage(event);
+    ASSERT_EQ(message.size(), kGzfHeaderSize + kPointerPayloadSize);
+
+    GzfHeader header;
+    ASSERT_TRUE(GzfHeader::Read(message.data(), message.size(), header));
+    EXPECT_EQ(header.type, uint8_t(GzfType::Pointer));
+    EXPECT_EQ(header.tail, kPointerPayloadSize);
+    const uint8_t* payload = message.data() + kGzfHeaderSize;
+    EXPECT_EQ(payload[0], uint8_t(PointerAction::Scroll));
+    EXPECT_EQ(payload[1], uint8_t(PointerButton::Left));
+    EXPECT_EQ(payload[2] << 8 | payload[3], 65535);
+    EXPECT_EQ(payload[4] << 8 | payload[5], 32768);
+    EXPECT_EQ(int16_t(payload[6] << 8 | payload[7]), -240);
+    EXPECT_EQ(int16_t(payload[8] << 8 | payload[9]), 120);
+}
+
+TEST(PointerMessageTest, KeepsCoordinatesInThePicture) {
+    PointerEvent event;
+    event.x = -0.5f;
+    event.y = 2.0f;
+    Bytes message = PointerMessage(event);
+    const uint8_t* payload = message.data() + kGzfHeaderSize;
+    EXPECT_EQ(payload[2] << 8 | payload[3], 0);
+    EXPECT_EQ(payload[4] << 8 | payload[5], 65535);
 }
 
 class FrameAssemblerTest : public ::testing::Test {

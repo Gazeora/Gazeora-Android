@@ -22,6 +22,7 @@ add_library(gazeora_protocols STATIC
     ${CLIENT}/protocols/discovery_reply.cpp
     ${CLIENT}/protocols/frame_assembler.cpp
     ${CLIENT}/protocols/gzf.cpp
+    ${CLIENT}/protocols/pointer_message.cpp
     ${CLIENT}/protocols/rtp_depacketizer.cpp
     ${CLIENT}/protocols/rtsp_message.cpp
     ${CLIENT}/protocols/ts_demuxer.cpp
