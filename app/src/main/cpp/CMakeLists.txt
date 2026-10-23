@@ -10,6 +10,7 @@ add_library(gazeora_protocols STATIC
     protocols/discovery_reply.cpp
     protocols/frame_assembler.cpp
     protocols/gzf.cpp
+    protocols/pointer_message.cpp
     protocols/rtp_depacketizer.cpp
     protocols/rtsp_message.cpp
     protocols/ts_demuxer.cpp
@@ -22,6 +23,10 @@ add_library(gazeora_client SHARED
     jni.cpp
     net.cpp
     player.cpp
+    pointer/pointer_sender_factory.cpp
+    pointer/queued_pointer_sender.cpp
+    pointer/udp_pointer_sender.cpp
+    pointer/usb_pointer_sender.cpp
     video_decoder.cpp
     video_renderer.cpp
     sources/http_source.cpp
