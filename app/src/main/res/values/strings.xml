@@ -16,6 +16,7 @@
     <string name="connect_open_mark" translatable="false">›</string>
     <string name="connect_usb_title">PC on the USB cable</string>
     <string name="connect_usb_detail">USB · tap to watch</string>
+    <string name="connect_pc_detail">%1$s · %2$s:%3$s · %4$s</string>
     <string name="connect_pc_usb_detail">USB · plug in to watch</string>
     <string name="connect_manual_title">Connect manually</string>
     <string name="connect_protocol_hint">Protocol</string>
