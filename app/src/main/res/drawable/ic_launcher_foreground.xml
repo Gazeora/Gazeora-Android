@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from the Gazeora desktop icon (Gazeora/apps/gazeora/resources/gazeora.ico). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:scaleX="0.27500"
+        android:scaleY="0.27500"
+        android:translateX="18.8000"
+        android:translateY="18.8000">
+        <path
+            android:strokeColor="#7C5CFF"
+            android:strokeWidth="8"
+            android:strokeLineCap="butt"
+            android:strokeMiterLimit="10"
+            android:pathData="M128,16 L128,96.5" />
+        <path
+            android:strokeColor="#7C5CFF"
+            android:strokeWidth="8"
+            android:strokeLineCap="butt"
+            android:strokeMiterLimit="10"
+            android:pathData="M128,128 L128,240" />
+        <path
+            android:fillColor="#7C5CFF"
+            android:pathData="M120,16 A8,8 0 1,1 136,16 A8,8 0 1,1 120,16 Z" />
+        <path
+            android:fillColor="#7C5CFF"
+            android:pathData="M120,240 A8,8 0 1,1 136,240 A8,8 0 1,1 120,240 Z" />
+        <path
+            android:strokeColor="#38BDF8"
+            android:strokeWidth="7.5"
+            android:strokeLineCap="butt"
+            android:strokeMiterLimit="10"
+            android:pathData="M37.93,167.63 A98.4,25.5 -23.75 0,1 67.93,131.61" />
+        <path
+            android:strokeColor="#38BDF8"
+            android:strokeWidth="7.5"
+            android:strokeLineCap="butt"
+            android:strokeMiterLimit="10"
+            android:pathData="M136.68,96.93 A98.4,25.5 -23.75 0,1 218.07,88.37" />
+        <path
+            android:fillColor="#1B1E2C"
+            android:pathData="M82,128 A64.01,64.01 0 0,1 174,128 A64.01,64.01 0 0,1 82,128 Z" />
+        <path
+            android:fillColor="#12141E"
+            android:pathData="M101.5,128 A26.5,26.5 0 1,1 154.5,128 A26.5,26.5 0 1,1 101.5,128 Z" />
+        <path
+            android:strokeColor="#7C5CFF"
+            android:strokeWidth="8"
+            android:strokeLineCap="butt"
+            android:strokeMiterLimit="10"
+            android:pathData="M82,128 A64.01,64.01 0 0,1 174,128 A64.01,64.01 0 0,1 82,128 Z" />
+        <path
+            android:fillColor="#7C5CFF"
+            android:pathData="M108,128 A20,20 0 1,1 148,128 A20,20 0 1,1 108,128 Z" />
+        <path
+            android:fillColor="#DCD6FF"
+            android:pathData="M115.75,120.5 A5.25,5.25 0 1,1 126.25,120.5 A5.25,5.25 0 1,1 115.75,120.5 Z" />
+        <path
+            android:strokeColor="#7C5CFF"
+            android:strokeWidth="9"
+            android:strokeLineCap="butt"
+            android:strokeMiterLimit="10"
+            android:pathData="M29.5,128 A98.5,98.5 0 1,1 226.5,128 A98.5,98.5 0 1,1 29.5,128 Z" />
+        <path
+            android:strokeColor="#12141E"
+            android:strokeWidth="13.5"
+            android:strokeLineCap="butt"
+            android:strokeMiterLimit="10"
+            android:pathData="M193.76,120.41 A98.4,25.5 -23.75 0,1 71.58,172.53" />
+        <path
+            android:strokeColor="#7C5CFF"
+            android:strokeWidth="8"
+            android:strokeLineCap="butt"
+            android:strokeMiterLimit="10"
+            android:pathData="M128,150 L128,240" />
+        <path
+            android:strokeColor="#38BDF8"
+            android:strokeWidth="7.5"
+            android:strokeLineCap="butt"
+            android:strokeMiterLimit="10"
+            android:pathData="M218.07,88.37 A98.4,25.5 -23.75 0,1 37.93,167.63" />
+    </group>
+</vector>

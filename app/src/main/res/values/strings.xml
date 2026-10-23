@@ -1,0 +1,36 @@
+<resources>
+    <string name="app_name">Gazeora</string>
+
+    <string name="protocol_rtsp_tcp">RTSP over TCP</string>
+    <string name="protocol_rtsp_udp">RTSP over UDP</string>
+    <string name="protocol_udp">UDP</string>
+    <string name="protocol_http">HTTP</string>
+    <string name="protocol_usb">USB</string>
+
+    <string name="connect_subtitle">Watch your PC games on this phone</string>
+    <string name="connect_found_title">Your PCs</string>
+    <string name="connect_searching">Looking for your PC…</string>
+    <string name="connect_search_hint">Open Gazeora on a PC on this network, or plug in over USB.</string>
+    <string name="connect_network_needed">Local network access is needed to find your PC.</string>
+    <string name="connect_allow_network">Allow network access</string>
+    <string name="connect_open_mark" translatable="false">›</string>
+    <string name="connect_usb_title">PC on the USB cable</string>
+    <string name="connect_usb_detail">USB · tap to watch</string>
+    <string name="connect_pc_usb_detail">USB · plug in to watch</string>
+    <string name="connect_manual_title">Connect manually</string>
+    <string name="connect_protocol_hint">Protocol</string>
+    <string name="connect_address_hint">PC address</string>
+    <string name="connect_address_invalid">Enter an address like 192.168.1.20:8554</string>
+    <string name="connect_watch">Watch</string>
+    <string name="connect_local_network_denied">Allow local network access in Settings, or use USB.</string>
+
+    <string name="player_connecting">Connecting to %1$s…</string>
+    <string name="player_error">Can\'t play the stream from %1$s</string>
+    <string name="player_retry">Retry</string>
+    <string name="player_rtsp_udp_blocked">No video over RTSP/UDP. Switch the PC to RTSP over TCP.</string>
+    <string name="player_no_frames_udp">No picture from %1$s:%2$d. Is the PC streaming over UDP?</string>
+    <string name="player_no_frames">No picture from %1$s</string>
+    <string name="player_usb_waiting">Waiting for the PC on USB…</string>
+    <string name="player_usb_permission">Allow USB access to connect</string>
+    <string name="player_usb_open_failed">Couldn\'t open the USB connection</string>
+</resources>
