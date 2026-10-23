@@ -1,0 +1,12 @@
+package com.gazeora.gazeora.feature.connect.presentation;
+
+import androidx.annotation.NonNull;
+
+import com.gazeora.gazeora.core.stream.domain.model.StreamTarget;
+
+/** What the connect screen does for each {@link ConnectEvent}. */
+public interface ConnectEventHandler {
+    void openPlayer(@NonNull StreamTarget target);
+
+    void requestNetworkPermission();
+}
