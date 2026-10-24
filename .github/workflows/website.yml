@@ -1,0 +1,21 @@
+# Sends every release to gazeora.github.io, which lists it on its download page: when it's
+# published (with the APK attached), edited, unpublished or deleted. A workflow that attaches
+# the APK after publishing should run the same action again once it's attached.
+name: Website
+
+on:
+  release:
+    types: [published, edited, unpublished, deleted]
+
+permissions:
+  contents: read
+
+jobs:
+  update:
+    name: Update the website
+    runs-on: ubuntu-latest
+    steps:
+      - uses: Gazeora/gazeora.github.io/.github/actions/publish-release@main
+        with:
+          platform: android
+          site-token: ${{ secrets.GAZEORA_SITE_TOKEN }}
