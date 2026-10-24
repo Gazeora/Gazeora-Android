@@ -68,6 +68,17 @@ cmake --build build/host-tests
 build/host-tests/protocols_test
 ```
 
+## Versions
+
+The version lives in the `VERSION` file at the root, as `MAJOR.MINOR.PATCH` (`1.1.0`), or
+`MAJOR.MINOR.PATCH-rc.N` for a release candidate (`1.1.0-rc.1`). It's always shown with a `v`:
+`app/build.gradle.kts` makes it the `versionName` (`v1.1.0-rc.1`) and works out the
+`versionCode` from it, which only grows: a release candidate counts just below its release
+(`1.1.0-rc.1` is 1010001, `1.1.0` is 1010099). Minor and patch go up to 99, rc up to 98.
+
+CI (`.github/workflows/ci.yml`) runs the Java unit tests and the native protocol tests and
+builds the debug APK on every pull request.
+
 ## Architecture
 
 The Java code follows **MVVM + Clean Architecture**. **Hilt** injects all dependencies.
