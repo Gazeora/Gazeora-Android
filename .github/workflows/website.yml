@@ -1,11 +1,10 @@
-# Sends every release to gazeora.github.io, which lists it on its download page: when it's
-# published (with the APK attached), edited, unpublished or deleted. A workflow that attaches
-# the APK after publishing should run the same action again once it's attached.
+# Keeps gazeora.github.io in step when a release is edited, unpublished or deleted. A newly
+# published release reaches it from ci.yml, after its APK is attached.
 name: Website
 
 on:
   release:
-    types: [published, edited, unpublished, deleted]
+    types: [edited, unpublished, deleted]
 
 permissions:
   contents: read
