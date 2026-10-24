@@ -85,8 +85,9 @@ ViewInfo FindViewInfo(VideoCodec codec, const uint8_t* data, size_t size) {
         // Messages until the trailing bits.
         while (at < sei.size() && sei[at] != 0x80) {
             uint32_t type, length;
+            // As `length > left`: `at + length` can wrap where size_t is 32 bits.
             if (!ReadSeiNumber(sei, at, type) || !ReadSeiNumber(sei, at, length) ||
-                at + length > sei.size()) {
+                length > sei.size() - at) {
                 break;
             }
             if (type == kUserDataUnregistered && length >= 16 &&

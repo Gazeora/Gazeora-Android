@@ -11,6 +11,7 @@
 #include "protocols/rtp_depacketizer.h"
 #include "protocols/rtsp_message.h"
 #include "protocols/ts_demuxer.h"
+#include "protocols/utf16.h"
 #include "protocols/view_info.h"
 
 namespace gazeora {
@@ -122,6 +123,16 @@ TEST(ViewInfoTest, SkipsEarlierMessagesAndEmulationPrevention) {
     EXPECT_TRUE(FindViewInfo(VideoCodec::H264, frame.data(), frame.size()).vr);
 }
 
+TEST(ViewInfoTest, AMessageLongerThanItsNalUnitIsntRead) {
+    // A size of 255 * 40 + 200: far past the bytes there are.
+    Bytes frame = {0, 0, 0, 1, 0x06, 0x05};
+    frame.insert(frame.end(), 40, 0xFF);
+    frame.push_back(200);
+    for (char c : std::string("GazeoraViewInfo1vr=1")) frame.push_back(uint8_t(c));
+    frame.push_back(0x80);
+    EXPECT_FALSE(FindViewInfo(VideoCodec::H264, frame.data(), frame.size()).vr);
+}
+
 TEST(GzfTest, HeaderRoundTrips) {
     GzfHeader header;
     header.type = uint8_t(GzfType::Frame);
@@ -148,6 +159,12 @@ TEST(GzfTest, HeaderRoundTrips) {
     ASSERT_TRUE(GzfHeader::Read(hello.data(), hello.size(), read));
     EXPECT_EQ(read.type, uint8_t(GzfType::Hello));
     EXPECT_EQ(read.lossPerMille, 1000);  // clamped
+    EXPECT_EQ(read.timestamp, 0u);       // no cookie before a challenge
+
+    // Over UDP, the cookie of the PC's challenge goes back in the timestamp.
+    auto answer = GzfMessage(GzfType::Hello, 0, 0xC00C1E5u);
+    ASSERT_TRUE(GzfHeader::Read(answer.data(), answer.size(), read));
+    EXPECT_EQ(read.timestamp, 0xC00C1E5u);
 }
 
 TEST(PointerMessageTest, IsAGzfMessageWithItsPayload) {
@@ -522,6 +539,34 @@ TEST(DiscoveryReplyTest, ReadsGazeorasReply) {
     EXPECT_FALSE(ParseDiscoveryReply(R"({"service":"other","protocol":"udp"})", "", reply));
     EXPECT_FALSE(ParseDiscoveryReply(R"({"service":"gazeora")", "", reply));
     EXPECT_FALSE(ParseDiscoveryReply("GAZEORA-DISCOVER 1", "", reply));
+}
+
+TEST(DiscoveryReplyTest, RefusesAPathOrPortThatIsntOne) {
+    DiscoveryReply reply;
+    auto with = [&](const std::string& members) {
+        return ParseDiscoveryReply(R"({"service":"gazeora","protocol":"http",)" + members + "}",
+                                   "10.0.0.2", reply);
+    };
+    EXPECT_TRUE(with(R"("port":8554,"path":"/stream.ts")"));
+    // A line break or space would add to the request it goes into.
+    EXPECT_FALSE(with(R"("port":8554,"path":"/x HTTP/1.1\r\nX-Evil: 1")"));
+    EXPECT_FALSE(with(R"("port":8554,"path":"/a b")"));
+    EXPECT_FALSE(with(R"("port":8554,"path":"stream.ts")"));
+    EXPECT_FALSE(with(R"("port":70000,"path":"/")"));
+    EXPECT_FALSE(with(R"("port":-1,"path":"/")"));
+}
+
+TEST(Utf16Test, KeepsUtf8AndReplacesWhatIsntIt) {
+    EXPECT_EQ(Utf16FromUtf8("Desk \xC3\xA9"), u"Desk \u00E9");
+    EXPECT_EQ(Utf16FromUtf8("\xF0\x9F\x8E\xAE"), u"\U0001F3AE");  // a surrogate pair
+    EXPECT_EQ(Utf16FromUtf8(std::string("a\0b", 3)), std::u16string(u"a\0b", 3));
+    // A stray continuation byte, a sequence cut short, an overlong NUL, an encoded surrogate,
+    // a byte that never starts one.
+    EXPECT_EQ(Utf16FromUtf8("\x80"), u"\uFFFD");
+    EXPECT_EQ(Utf16FromUtf8("x\xE2\x82"), u"x\uFFFD\uFFFD");
+    EXPECT_EQ(Utf16FromUtf8("\xC0\x80"), u"\uFFFD");
+    EXPECT_EQ(Utf16FromUtf8("\xED\xA0\x80"), u"\uFFFD");
+    EXPECT_EQ(Utf16FromUtf8("\xFF" "ok"), u"\uFFFDok");
 }
 
 TEST(RtspMessageTest, ParsesResponsesWithBodies) {

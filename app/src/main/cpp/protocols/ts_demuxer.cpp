@@ -10,6 +10,8 @@ constexpr size_t kPacketSize = 188;
 constexpr uint8_t kSync = 0x47;
 constexpr uint8_t kStreamTypeH264 = 0x1B;
 constexpr uint8_t kStreamTypeH265 = 0x24;
+// A PES no frame comes near: a stream that never starts another one doesn't get to fill memory.
+constexpr size_t kMaxPes = 16 << 20;
 
 }  // namespace
 
@@ -115,6 +117,10 @@ void TsDemuxer::Packet(const uint8_t* packet) {
         return;  // joined mid-PES
     }
     m_pes.insert(m_pes.end(), data, data + size);
+    if (m_pes.size() > kMaxPes) {
+        m_pes.clear();  // dropped; the next unit start begins afresh
+        return;
+    }
     if (ends) {
         Flush();
     }

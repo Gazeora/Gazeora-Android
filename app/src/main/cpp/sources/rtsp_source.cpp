@@ -123,6 +123,10 @@ bool RtspSource::Open(std::string& error) {
         }
     } else {
         std::string ports = TransportParameter(replied, "server_port");
+        int rtpPort = std::atoi(ports.c_str());
+        if (rtpPort > 0 && rtpPort <= 65535) {
+            m_serverRtpPort = uint16_t(rtpPort);
+        }
         size_t dash = ports.find('-');
         if (dash != std::string::npos) {
             m_serverRtcp = m_pc;
@@ -190,8 +194,17 @@ void RtspSource::Play() {
             pollfd fds[2] = {{m_rtp.Get(), POLLIN, 0}, {m_rtsp.Get(), POLLIN, 0}};
             if (poll(fds, 2, m_depacketizer->Waiting() ? 2 : 100) > 0) {
                 if (fds[0].revents & POLLIN) {
+                    sockaddr_in from = {};
+                    socklen_t fromLength = sizeof(from);
                     ssize_t got;
-                    while ((got = recv(m_rtp.Get(), datagram, sizeof(datagram), MSG_DONTWAIT)) > 0) {
+                    while ((got = recvfrom(m_rtp.Get(), datagram, sizeof(datagram), MSG_DONTWAIT,
+                                           reinterpret_cast<sockaddr*>(&from), &fromLength)) > 0) {
+                        fromLength = sizeof(from);
+                        // Only the PC's: anyone else on the network could put pictures in, or
+                        // with a new SSRC start the stream over.
+                        if (!FromPc(from)) {
+                            continue;
+                        }
                         m_depacketizer->Add(datagram, size_t(got), net::NowMs());
                         ++m_packets;
                     }
@@ -342,6 +355,11 @@ void RtspSource::TakeMessages() {
     if (m_inbox.size() > kMaxInbox) {
         m_inbox.clear();
     }
+}
+
+bool RtspSource::FromPc(const sockaddr_in& from) const {
+    return from.sin_family == AF_INET && from.sin_addr.s_addr == m_pc.sin_addr.s_addr &&
+           (m_serverRtpPort == 0 || ntohs(from.sin_port) == m_serverRtpPort);
 }
 
 void RtspSource::SendReceiverReport(bool askForKeyFrame) {

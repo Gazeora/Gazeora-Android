@@ -1,5 +1,6 @@
 #include "protocols/discovery_reply.h"
 
+#include <algorithm>
 #include <cstdlib>
 
 namespace gazeora {
@@ -178,7 +179,12 @@ bool ParseDiscoveryReply(const std::string& text, const std::string& fallbackNam
     out.port = std::atoi(Member(members, "port", "0").c_str());
     out.path = Member(members, "path", "/");
     out.codec = Member(members, "codec", "h264");
-    return true;
+    // The path goes into the request line as it is: a space or line break in it would add to
+    // the request, so only visible ASCII after a slash.
+    bool plainPath = out.path[0] == '/' &&
+                     std::all_of(out.path.begin(), out.path.end(),
+                                 [](char c) { return c > 0x20 && c < 0x7F; });
+    return plainPath && out.port >= 0 && out.port <= 65535;  // 0: USB, which has none
 }
 
 }  // namespace gazeora
