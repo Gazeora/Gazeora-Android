@@ -41,6 +41,10 @@ val appVersion = AppVersion.parse(
     providers.fileContents(rootProject.layout.projectDirectory.file("VERSION")).asText.get()
 )
 
+// The release signing key, given by CI (see .github/workflows/ci.yml). Without it the release
+// build is unsigned, which is fine for trying it locally.
+val releaseKeystore = providers.environmentVariable("GAZEORA_KEYSTORE_FILE")
+
 android {
     namespace = "com.gazeora.gazeora"
     compileSdk {
@@ -70,8 +74,20 @@ android {
         }
     }
 
+    signingConfigs {
+        if (releaseKeystore.isPresent) {
+            create("release") {
+                storeFile = file(releaseKeystore.get())
+                storePassword = providers.environmentVariable("GAZEORA_KEYSTORE_PASSWORD").get()
+                keyAlias = providers.environmentVariable("GAZEORA_KEY_ALIAS").get()
+                keyPassword = providers.environmentVariable("GAZEORA_KEY_PASSWORD").get()
+            }
+        }
+    }
+
     buildTypes {
         release {
+            if (releaseKeystore.isPresent) signingConfig = signingConfigs.getByName("release")
             optimization {
                 enable = true
                 packageScope = setOf("androidx.**", "kotlin.**", "kotlinx.**")
