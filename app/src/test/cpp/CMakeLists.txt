@@ -26,6 +26,7 @@ add_library(gazeora_protocols STATIC
     ${CLIENT}/protocols/rtp_depacketizer.cpp
     ${CLIENT}/protocols/rtsp_message.cpp
     ${CLIENT}/protocols/ts_demuxer.cpp
+    ${CLIENT}/protocols/utf16.cpp
     ${CLIENT}/protocols/view_info.cpp)
 target_include_directories(gazeora_protocols PUBLIC ${CLIENT})
 

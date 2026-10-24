@@ -17,8 +17,9 @@ namespace {
 
 // Accessory reads come in whole USB transfers; a smaller buffer can lose data.
 constexpr size_t kReadSize = 16384;
-// Not a real length: out of step.
-constexpr uint32_t kMaxMessage = 64 << 20;
+// Not a real length: out of step. Well over any frame, but not so much that whatever is on the
+// other end of the cable can have the app hold it all.
+constexpr uint32_t kMaxMessage = 16 << 20;
 
 // Where the next "GZF1" starts at or after `from`, or where the bytes run out.
 size_t Resync(const std::vector<uint8_t>& data, size_t from, size_t filled) {

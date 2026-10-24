@@ -9,6 +9,7 @@
 
 #include "discovery.h"
 #include "player.h"
+#include "protocols/utf16.h"
 #include "sources/usb_link.h"
 
 namespace gazeora {
@@ -41,9 +42,11 @@ std::string String(JNIEnv* env, jstring text) {
     return copy;
 }
 
-// Java's modified UTF-8 takes plain UTF-8 for everything but characters beyond the BMP and
-// NUL, which a PC name or error message won't have.
-jstring JavaString(JNIEnv* env, const std::string& text) { return env->NewStringUTF(text.c_str()); }
+// A Java string of `text`, which may come off the network (protocols/utf16.h).
+jstring JavaString(JNIEnv* env, const std::string& text) {
+    std::u16string utf16 = Utf16FromUtf8(text);
+    return env->NewString(reinterpret_cast<const jchar*>(utf16.data()), jsize(utf16.size()));
+}
 
 void ClearException(JNIEnv* env) {
     if (env->ExceptionCheck()) {

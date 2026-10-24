@@ -57,9 +57,10 @@ void GzfHeader::Write(uint8_t* out) const {
     Put32(out + 20, tail);
 }
 
-std::array<uint8_t, kGzfHeaderSize> GzfMessage(GzfType type, int lossPerMille) {
+std::array<uint8_t, kGzfHeaderSize> GzfMessage(GzfType type, int lossPerMille, uint32_t cookie) {
     GzfHeader header;
     header.type = uint8_t(type);
+    header.timestamp = cookie;
     header.lossPerMille = uint16_t(std::clamp(lossPerMille, 0, 1000));
     std::array<uint8_t, kGzfHeaderSize> message;
     header.Write(message.data());

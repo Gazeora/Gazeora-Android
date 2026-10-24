@@ -18,8 +18,8 @@ constexpr uint64_t kQuietAfterMs = 4000;
 constexpr uint64_t kKeyFrameRequestEveryMs = 300;
 constexpr int kReceiveBufferBytes = 4 << 20;
 
-void Say(int fd, GzfType type, int lossPerMille) {
-    auto message = GzfMessage(type, lossPerMille);
+void Say(int fd, GzfType type, int lossPerMille, uint32_t cookie) {
+    auto message = GzfMessage(type, lossPerMille, cookie);
     // Lost like any datagram; the next hello goes out in a second.
     send(fd, message.data(), message.size(), MSG_NOSIGNAL);
 }
@@ -62,14 +62,15 @@ void UdpSource::Run() {
     uint64_t nextHelloMs = 0, lastKeyFrameRequestMs = 0;
     uint64_t lastFrameMs = net::NowMs();
     bool quiet = false;
+    uint32_t cookie = 0;  // from the PC's challenge
     while (m_running) {
         uint64_t now = net::NowMs();
         if (now >= nextHelloMs) {
-            Say(fd.Get(), GzfType::Hello, assembler.TakeLossPerMille());
+            Say(fd.Get(), GzfType::Hello, assembler.TakeLossPerMille(), cookie);
             nextHelloMs = now + kGzfHelloEveryMs;
         }
         if (now - lastKeyFrameRequestMs >= kKeyFrameRequestEveryMs && m_keyFrameWanted.exchange(false)) {
-            Say(fd.Get(), GzfType::KeyFrameRequest, 0);
+            Say(fd.Get(), GzfType::KeyFrameRequest, 0, cookie);
             lastKeyFrameRequestMs = now;
         }
         // Every datagram waiting, then back to the hellos; often while a frame waits for
@@ -80,8 +81,15 @@ void UdpSource::Run() {
                    errno == ECONNREFUSED) {
                 // Refused: nothing listening yet. Keep saying hello.
                 GzfHeader header;
-                if (got > 0 && GzfHeader::Read(datagram, size_t(got), header) &&
-                    header.type == uint8_t(GzfType::Frame)) {
+                if (got <= 0 || !GzfHeader::Read(datagram, size_t(got), header)) {
+                    continue;
+                }
+                if (header.type == uint8_t(GzfType::Challenge)) {
+                    // Hello again with its cookie right away, so the frames start.
+                    cookie = header.timestamp;
+                    Say(fd.Get(), GzfType::Hello, 0, cookie);
+                    nextHelloMs = net::NowMs() + kGzfHelloEveryMs;
+                } else if (header.type == uint8_t(GzfType::Frame)) {
                     assembler.Add(header, datagram + kGzfHeaderSize, size_t(got) - kGzfHeaderSize,
                                   net::NowMs());
                     lastFrameMs = net::NowMs();
@@ -98,7 +106,7 @@ void UdpSource::Run() {
             m_sink.OnStatus(PlayerStatus::NoFrames, {});
         }
     }
-    Say(fd.Get(), GzfType::Bye, 0);
+    Say(fd.Get(), GzfType::Bye, 0, cookie);
 }
 
 }  // namespace gazeora

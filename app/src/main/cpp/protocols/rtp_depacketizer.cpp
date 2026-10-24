@@ -20,6 +20,8 @@ constexpr uint8_t kFragmentation = 49;
 // them: Wi-Fi delivers some out of order.
 constexpr uint64_t kReorderWaitMs = 10;
 constexpr size_t kMaxReorderPackets = 64;
+// A frame no encoder makes: one never ended (no marker, the same timestamp) is dropped.
+constexpr size_t kMaxFrameBytes = 16 << 20;
 
 struct RtpHeader {
     uint16_t sequence;
@@ -145,6 +147,10 @@ void RtpDepacketizer::Process(const uint8_t* packet, uint32_t timestamp, bool ma
         m_timestamp = timestamp;
     }
     Payload(packet + payload, end - payload);
+    if (m_frame.size() > kMaxFrameBytes) {
+        m_frame.clear();
+        m_broken = true;
+    }
     if (marker) {
         Finish();
     }

@@ -14,6 +14,7 @@ add_library(gazeora_protocols STATIC
     protocols/rtp_depacketizer.cpp
     protocols/rtsp_message.cpp
     protocols/ts_demuxer.cpp
+    protocols/utf16.cpp
     protocols/view_info.cpp)
 target_include_directories(gazeora_protocols PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_compile_options(gazeora_protocols PRIVATE -Wall -Wextra)

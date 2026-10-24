@@ -11,20 +11,25 @@ namespace gazeora {
 // keep the two in step.
 //
 // A 24-byte big-endian header: "GZF1", type, flags (key frame, H.265), width, height, the
-// player's loss per mille (in a hello), frame number, 90 kHz timestamp, and a last word that
-// is the chunk index and count over UDP, the payload length over USB.
+// player's loss per mille (in a hello), frame number, 90 kHz timestamp (in the player's
+// messages over UDP and the PC's challenge: the cookie), and a last word that is the chunk index
+// and count over UDP, the payload length over USB.
+//
+// Over UDP the PC answers a hello with a challenge, whose cookie the player's messages then
+// carry: the PC streams only to an address that shows it got it, so one can't name another.
 constexpr size_t kGzfHeaderSize = 24;
 constexpr size_t kGzfMaxDatagram = 1400;
 // How often the player says hello; the PC drops a player silent for 5 s.
 constexpr int kGzfHelloEveryMs = 1000;
 
-// Pointer: a touch for the PC's mouse (pointer_message.h).
+// Pointer: a touch for the PC's mouse (pointer_message.h). Challenge: the PC's cookie (UDP).
 enum class GzfType : uint8_t {
     Frame = 1,
     Hello = 2,
     KeyFrameRequest = 3,
     Bye = 4,
     Pointer = 5,
+    Challenge = 6,
 };
 
 constexpr uint8_t kGzfKeyFrame = 1;
@@ -50,7 +55,8 @@ struct GzfHeader {
 
 bool StartsWithGzfMagic(const uint8_t* data);
 
-// A message from the player: a hello, key frame request or bye, without payload.
-std::array<uint8_t, kGzfHeaderSize> GzfMessage(GzfType type, int lossPerMille);
+// A message from the player: a hello, key frame request or bye, without payload; over UDP with
+// the cookie of the PC's last challenge (0 before one).
+std::array<uint8_t, kGzfHeaderSize> GzfMessage(GzfType type, int lossPerMille, uint32_t cookie = 0);
 
 }  // namespace gazeora

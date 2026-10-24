@@ -44,6 +44,8 @@ private:
     void TakeMessages();
     // A receiver report, and a key frame request after it if `askForKeyFrame`.
     void SendReceiverReport(bool askForKeyFrame);
+    // Whether an RTP datagram came from the PC: its address, and its RTP port if it said one.
+    bool FromPc(const sockaddr_in& from) const;
 
     std::string m_host;
     uint16_t m_port;
@@ -61,6 +63,7 @@ private:
     net::Fd m_rtcp;
     sockaddr_in m_serverRtcp = {};
     bool m_haveServerRtcp = false;
+    uint16_t m_serverRtpPort = 0;  // where the PC sends RTP from; 0 if it didn't say
     std::string m_url;
     std::string m_session;
     int m_timeoutSeconds = 60;
