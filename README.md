@@ -68,6 +68,38 @@ cmake --build build/host-tests
 build/host-tests/protocols_test
 ```
 
+## Versions and releases
+
+The version lives in the `VERSION` file at the root, as `MAJOR.MINOR.PATCH` (`1.1.0`), or
+`MAJOR.MINOR.PATCH-rc.N` for a release candidate (`1.1.0-rc.1`). It's always shown with a `v`:
+`app/build.gradle.kts` makes it the `versionName` (`v1.1.0-rc.1`) and works out the
+`versionCode` from it, which only grows: a release candidate counts just below its release
+(`1.1.0-rc.1` is 1010001, `1.1.0` is 1010099). Minor and patch go up to 99, rc up to 98.
+
+CI (`.github/workflows/ci.yml`) runs the Java unit tests and the native protocol tests and
+builds the debug APK on every pull request, and by hand from the Actions tab. To release:
+
+1. Change `VERSION`, for example to `1.1.0-rc.1`, and commit it (`build: release v1.1.0-rc.1`).
+2. Publish a GitHub release titled `Gazeora v1.1.0-rc.1` with a new tag `v1.1.0-rc.1`. A
+   release candidate is published as a **pre-release**, a stable version as a normal release.
+3. CI checks the tag matches `VERSION` and the pre-release setting matches the version, builds
+   the release APK signed with the release key, attaches it as `Gazeora-v1.1.0-rc.1.apk`, and
+   sends the release to [gazeora.github.io](https://gazeora.github.io). Editing or deleting the
+   release later updates the site too (`.github/workflows/website.yml`).
+
+The release job needs these repository secrets:
+
+| Secret | What it holds |
+| --- | --- |
+| `GAZEORA_KEYSTORE_BASE64` | The release keystore, base64-encoded (`base64 -w0 release.keystore`) |
+| `GAZEORA_KEYSTORE_PASSWORD` | The keystore's password |
+| `GAZEORA_KEY_ALIAS` | The signing key's alias |
+| `GAZEORA_KEY_PASSWORD` | The signing key's password |
+| `GAZEORA_SITE_TOKEN` | A fine-grained token with **Contents: Read and write** on `Gazeora/gazeora.github.io` |
+
+Keep the keystore safe and backed up outside the repository: every later version must be signed
+with the same key, or phones refuse to install it as an update.
+
 ## Architecture
 
 The Java code follows **MVVM + Clean Architecture**. **Hilt** injects all dependencies.
