@@ -1,0 +1,9 @@
+#pragma once
+
+// Made by the build from shaders/@SHADER_FILE@: edit that file, not this one.
+
+namespace gazeora::shaders {
+
+constexpr char @SHADER_NAME@[] = R"glsl(@SHADER_SOURCE@)glsl";
+
+}  // namespace gazeora::shaders
