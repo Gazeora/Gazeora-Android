@@ -39,7 +39,8 @@ const char kFragmentShader[] = R"(
 precision highp float;
 uniform samplerExternalOES picture;
 uniform vec4 lens;    // k1, k2, picture scale, chroma correction
-uniform vec4 layout;  // VR (0/1), the lens center's x in the eye, eye aspect, picture aspect
+// Not "layout": Adreno drivers (Redmi Y3) reject it as a keyword, and VR then can't draw.
+uniform vec4 eyeLayout;  // VR (0/1), the lens center's x in the eye, eye aspect, picture aspect
 uniform vec4 crop;    // the picture in the buffer: left, top, width, height (0..1)
 uniform float pairView;  // the view of a pair this eye shows (0 left, 1 right); -1 no pair
 uniform vec2 bufferSize;  // in texels
@@ -79,7 +80,7 @@ vec2 InBuffer(vec2 q) {
     return crop.xy + q * crop.zw;
 }
 vec2 ThroughLens(vec2 q, float channelScale) {
-    return 0.5 + q * channelScale / (2.0 * lens.z) * vec2(1.0 / layout.w, 1.0);
+    return 0.5 + q * channelScale / (2.0 * lens.z) * vec2(1.0 / eyeLayout.w, 1.0);
 }
 float Channel(vec2 q, int channel) {
     if (q.x < 0.0 || q.y < 0.0 || q.x > 1.0 || q.y > 1.0) return 0.0;
@@ -87,11 +88,11 @@ float Channel(vec2 q, int channel) {
     return channel == 0 ? color.r : channel == 1 ? color.g : color.b;
 }
 void main() {
-    if (layout.x == 0.0) {
+    if (eyeLayout.x == 0.0) {
         gl_FragColor = vec4(Bicubic(InBuffer(uv)), 1.0);
         return;
     }
-    vec2 p = (uv - vec2(layout.y, 0.5)) * vec2(layout.z, 1.0) * 2.0;
+    vec2 p = (uv - vec2(eyeLayout.y, 0.5)) * vec2(eyeLayout.z, 1.0) * 2.0;
     float r2 = dot(p, p);
     vec2 q = p * (1.0 + lens.x * r2 + lens.y * r2 * r2);
     gl_FragColor = vec4(Channel(ThroughLens(q, 1.0 - lens.w), 0),
@@ -309,7 +310,7 @@ bool VideoRenderer::SetUpGl(std::string& error) {
     glUseProgram(m_program);
     glUniform1i(glGetUniformLocation(m_program, "picture"), 0);
     m_lens = glGetUniformLocation(m_program, "lens");
-    m_layout = glGetUniformLocation(m_program, "layout");
+    m_eyeLayout = glGetUniformLocation(m_program, "eyeLayout");
     m_crop = glGetUniformLocation(m_program, "crop");
     m_pairView = glGetUniformLocation(m_program, "pairView");
     m_bufferSize = glGetUniformLocation(m_program, "bufferSize");
@@ -448,7 +449,7 @@ void VideoRenderer::Draw(const Texture& texture, const Shown& shown) {
         float scale = std::min(width / pictureWidth, height / pictureHeight);
         GLsizei w = GLsizei(pictureWidth * scale), h = GLsizei(pictureHeight * scale);
         glViewport((m_shownWidth - w) / 2, (m_shownHeight - h) / 2, w, h);
-        glUniform4f(m_layout, 0, 0, 0, 0);
+        glUniform4f(m_eyeLayout, 0, 0, 0, 0);
         glUniform1f(m_pairView, -1);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         return;
@@ -462,7 +463,7 @@ void VideoRenderer::Draw(const Texture& texture, const Shown& shown) {
     for (int eye = 0; eye < 2; ++eye) {
         glViewport(eye * eyeWidth, 0, eyeWidth, m_shownHeight);
         float center = eye == 1 ? view.separation : 1 - view.separation;
-        glUniform4f(m_layout, 1, center, float(eyeWidth) / height, pictureAspect);
+        glUniform4f(m_eyeLayout, 1, center, float(eyeWidth) / height, pictureAspect);
         glUniform1f(m_pairView, view.pair ? float(eye) : -1.0f);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     }
