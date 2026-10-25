@@ -94,7 +94,7 @@ private:
     PFNEGLDUPNATIVEFENCEFDANDROIDPROC m_dupFence = nullptr;
     GLuint m_program = 0;
     GLint m_lens = -1;
-    GLint m_layout = -1;
+    GLint m_eyeLayout = -1;
     GLint m_crop = -1;
     GLint m_pairView = -1;
     GLint m_bufferSize = -1;
