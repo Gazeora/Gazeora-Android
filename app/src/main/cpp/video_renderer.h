@@ -17,6 +17,7 @@
 #include <vector>
 
 #include "protocols/view_info.h"
+#include "shaders/shader_program.h"
 
 namespace gazeora {
 
@@ -92,7 +93,7 @@ private:
     PFNEGLCREATESYNCKHRPROC m_createSync = nullptr;
     PFNEGLDESTROYSYNCKHRPROC m_destroySync = nullptr;
     PFNEGLDUPNATIVEFENCEFDANDROIDPROC m_dupFence = nullptr;
-    GLuint m_program = 0;
+    ShaderProgram m_program;
     GLint m_lens = -1;
     GLint m_eyeLayout = -1;
     GLint m_crop = -1;
