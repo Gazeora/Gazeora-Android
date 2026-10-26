@@ -6,6 +6,8 @@ import com.gazeora.gazeora.feature.player.data.decoder.DecoderCatalog;
 import com.gazeora.gazeora.feature.player.data.decoder.MediaCodecDecoderCatalog;
 import com.gazeora.gazeora.feature.player.data.network.WifiLowLatencyLock;
 import com.gazeora.gazeora.feature.player.data.remote.NativePlayerFactory;
+import com.gazeora.gazeora.feature.player.data.room.AssetPanoramaSource;
+import com.gazeora.gazeora.feature.player.data.room.PanoramaSource;
 import com.gazeora.gazeora.feature.player.domain.player.NetworkLatencyLock;
 import com.gazeora.gazeora.feature.player.domain.player.PlaybackSessionFactory;
 import com.gazeora.gazeora.feature.player.domain.touch.RemotePointer;
@@ -31,4 +33,7 @@ public interface PlayerModule {
 
     @Binds
     RemotePointer bindRemotePointer(PlaybackController impl);
+
+    @Binds
+    PanoramaSource bindPanoramaSource(AssetPanoramaSource impl);
 }

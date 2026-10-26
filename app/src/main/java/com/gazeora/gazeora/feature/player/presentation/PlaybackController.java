@@ -9,6 +9,7 @@ import com.gazeora.gazeora.core.stream.domain.model.StreamTarget;
 import com.gazeora.gazeora.core.usb.domain.UsbStatusListener;
 import com.gazeora.gazeora.core.usb.domain.UsbWatcher;
 import com.gazeora.gazeora.feature.player.domain.model.PointerCommand;
+import com.gazeora.gazeora.feature.player.domain.model.ScreenGeometry;
 import com.gazeora.gazeora.feature.player.domain.player.NetworkLatencyLock;
 import com.gazeora.gazeora.feature.player.domain.player.PlaybackListener;
 import com.gazeora.gazeora.feature.player.domain.player.PlaybackSession;
@@ -30,6 +31,7 @@ public final class PlaybackController implements RemotePointer {
     private final NetworkLatencyLock networkLock;
     @Nullable private Surface surface;
     @Nullable private PlaybackSession session;
+    @Nullable private ScreenGeometry screen;
 
     @Inject
     public PlaybackController(@NonNull PlaybackSessionFactory<Surface> sessions,
@@ -43,6 +45,14 @@ public final class PlaybackController implements RemotePointer {
         this.surface = surface;
     }
 
+    /** Passed on to the stream playing now, and to each one started later. */
+    public void setScreen(@NonNull ScreenGeometry screen) {
+        this.screen = screen;
+        if (session != null) {
+            session.setScreen(screen);
+        }
+    }
+
     /** Whether a new stream started: not without a surface, nor while one plays. */
     public boolean start(@NonNull StreamTarget target, @NonNull PlaybackListener listener,
             @NonNull UsbStatusListener usbListener) {
@@ -50,6 +60,9 @@ public final class PlaybackController implements RemotePointer {
             return false;
         }
         session = sessions.open(surface, target, listener);
+        if (screen != null) {
+            session.setScreen(screen);
+        }
         if (target.getProtocol().needsAddress()) {
             networkLock.acquire();
         } else {

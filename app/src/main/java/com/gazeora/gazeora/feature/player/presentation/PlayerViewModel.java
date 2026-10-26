@@ -17,6 +17,7 @@ import com.gazeora.gazeora.core.usb.domain.UsbConnection;
 import com.gazeora.gazeora.core.usb.domain.UsbStatus;
 import com.gazeora.gazeora.feature.player.domain.model.KnownUsbPcs;
 import com.gazeora.gazeora.feature.player.domain.model.PlayerStatus;
+import com.gazeora.gazeora.feature.player.domain.model.ScreenGeometry;
 import com.gazeora.gazeora.feature.player.domain.model.StreamPicture;
 import com.gazeora.gazeora.feature.player.domain.player.PlaybackListener;
 import com.gazeora.gazeora.feature.player.domain.touch.TouchGestureInterpreter;
@@ -116,6 +117,11 @@ public final class PlayerViewModel extends ViewModel implements PlaybackListener
 
     public void onRetry() {
         play();
+    }
+
+    /** The screen turned over, or was first measured. */
+    public void onScreenChanged(@NonNull ScreenGeometry screen) {
+        playback.setScreen(screen);
     }
 
     public void onTouch(@NonNull TouchSample sample) {

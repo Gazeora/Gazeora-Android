@@ -8,13 +8,18 @@ import android.os.Looper;
 
 import androidx.annotation.NonNull;
 
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+
+import javax.inject.Singleton;
+
 import dagger.Module;
 import dagger.Provides;
 import dagger.hilt.InstallIn;
 import dagger.hilt.android.qualifiers.ApplicationContext;
 import dagger.hilt.components.SingletonComponent;
 
-/** Android system services and the main thread's Handler. */
+/** Android system services, the main thread's Handler and a thread for slow work. */
 @Module
 @InstallIn(SingletonComponent.class)
 public final class AndroidServicesModule {
@@ -38,5 +43,13 @@ public final class AndroidServicesModule {
     @NonNull
     static Handler provideMainHandler() {
         return new Handler(Looper.getMainLooper());
+    }
+
+    // One thread, for decoding and other work too slow for the main thread.
+    @Provides
+    @Singleton
+    @NonNull
+    static Executor provideBackgroundExecutor() {
+        return Executors.newSingleThreadExecutor();
     }
 }

@@ -19,6 +19,13 @@ add_library(gazeora_protocols STATIC
 target_include_directories(gazeora_protocols PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_compile_options(gazeora_protocols PRIVATE -Wall -Wextra)
 
+# The room view's geometry, also without Android, for the host tests.
+add_library(gazeora_room_math STATIC
+    room/head_pose.cpp
+    room/room_geometry.cpp)
+target_include_directories(gazeora_room_math PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_compile_options(gazeora_room_math PRIVATE -Wall -Wextra)
+
 # The shaders (shaders/*.vert, *.frag), as C++ strings in generated headers: shaders/<file>.h.
 set(GENERATED_DIR ${CMAKE_CURRENT_BINARY_DIR}/generated)
 function(embed_shader SHADER_FILE SHADER_NAME)
@@ -29,9 +36,13 @@ function(embed_shader SHADER_FILE SHADER_NAME)
 endfunction()
 embed_shader(video.vert kVideoVertexShader)
 embed_shader(video.frag kVideoFragmentShader)
+embed_shader(room.frag kRoomFragmentShader)
 
 add_library(gazeora_client SHARED
     discovery.cpp
+    gl/egl_procs.cpp
+    gl/hardware_buffer_textures.cpp
+    gl/image_releaser.cpp
     jni.cpp
     net.cpp
     player.cpp
@@ -39,6 +50,11 @@ add_library(gazeora_client SHARED
     pointer/queued_pointer_sender.cpp
     pointer/udp_pointer_sender.cpp
     pointer/usb_pointer_sender.cpp
+    room/camera_feed.cpp
+    room/camera_setup.cpp
+    room/head_tracker.cpp
+    room/panorama.cpp
+    room/room_renderer.cpp
     shaders/shader_program.cpp
     video_decoder.cpp
     video_renderer.cpp
@@ -48,5 +64,5 @@ add_library(gazeora_client SHARED
     sources/usb_link.cpp)
 target_include_directories(gazeora_client PRIVATE ${GENERATED_DIR})
 target_compile_options(gazeora_client PRIVATE -Wall -Wextra)
-target_link_libraries(gazeora_client PRIVATE gazeora_protocols mediandk android nativewindow
-    EGL GLESv2 log)
+target_link_libraries(gazeora_client PRIVATE gazeora_protocols gazeora_room_math mediandk
+    camera2ndk jnigraphics android nativewindow EGL GLESv2 log)

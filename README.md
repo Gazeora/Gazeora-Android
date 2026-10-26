@@ -19,6 +19,10 @@ The PC side is the separate **Gazeora** project. This app is only the viewer.
   moving a finger scrolls. No button is ever left held down on the PC.
 - **Hardware decoding.** H.264 and H.265 are decoded with `MediaCodec`, using low-latency decoders
   where the device has them.
+- **Gazeora's window in the room.** In a VR viewer, while no game runs, the PC's Gazeora window
+  floats in the air about 2 m ahead, over the back camera's picture, and stays put as the head
+  turns (the rotation sensor). Without the camera (permission refused, in use, or covered), it
+  floats in a 360° lake scene instead. Games still fill both eyes.
 - **Manual connection.** You can type a `host[:port]` instead. The app remembers the last one.
 
 ## Requirements
@@ -33,6 +37,9 @@ The PC side is the separate **Gazeora** project. This app is only the viewer.
 
 On Android 17 and later the app asks for the **local network** permission. Without it, Android
 silently drops traffic to the PC. Loopback addresses (`127.*`, for `adb reverse`) don't need it.
+
+The player asks for the **camera** as it opens, before the phone goes into the viewer, to show
+the room behind Gazeora's window. It's optional.
 
 ## Build and run
 
@@ -59,13 +66,22 @@ Studio's bundled JDK (for example `C:\Program Files\Android\Android Studio\jbr`)
 ./gradlew testDebugUnitTest      # Java unit tests (app/src/test/java)
 ```
 
-The native protocol code has host-side GoogleTest tests. They build with any desktop C++17
-compiler:
+The native protocol code and the room view's geometry have host-side GoogleTest tests. They
+build with any desktop C++17 compiler:
 
 ```bash
 cmake -S app/src/test/cpp -B build/host-tests
 cmake --build build/host-tests
 build/host-tests/protocols_test
+build/host-tests/room_test
+```
+
+The 360° scene (`app/src/main/assets/room/panorama.jpg`) is rendered by a script, which can be
+tweaked and run again:
+
+```bash
+pip install -r tools/panorama/requirements.txt
+python tools/panorama/render_panorama.py
 ```
 
 ## Versions
@@ -76,8 +92,8 @@ The version lives in the `VERSION` file at the root, as `MAJOR.MINOR.PATCH` (`1.
 `versionCode` from it, which only grows: a release candidate counts just below its release
 (`1.1.0-rc.1` is 1010001, `1.1.0` is 1010099). Minor and patch go up to 99, rc up to 98.
 
-CI (`.github/workflows/ci.yml`) runs the Java unit tests and the native protocol tests and
-builds the debug APK on every pull request.
+CI (`.github/workflows/ci.yml`) runs the Java unit tests and the native protocol and room
+geometry tests and builds the debug APK on every pull request.
 
 ## Architecture
 
@@ -107,6 +123,9 @@ straight onto the player's `Surface`.
 | `sources/` | Stream sources for each protocol, plus the shared USB link |
 | `pointer/` | Sends touches back to the PC: over UDP (port `8557`) for network streams, or over the USB link |
 | `player.*`, `video_*` | Ties a source to the decoder and renderer |
+| `room/` | Gazeora's window floating in the room: head tracking, the back camera, the 360 scene, and the geometry (no Android in `head_pose.*`, `room_geometry.*`) |
+| `gl/` | Decoder and camera buffers as textures, and handing them back once drawn |
+| `shaders/` | The GLSL: `video.frag` for the stream as it is or for a VR viewer, `room.frag` for the room |
 | `discovery.*` | Network search for PCs |
 | `jni.cpp` | The JNI entry points for the Java adapters |
 
