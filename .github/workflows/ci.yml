@@ -1,5 +1,7 @@
 # Tests the app and builds its debug APK. A published GitHub release also gets a signed
 # Gazeora-v<version>.apk attached, and then gazeora.github.io is told about it.
+# weekly-release.yml calls this with a tag it made: that tag is built, and released as a
+# pre-release with its APK.
 name: CI
 
 on:
@@ -7,12 +9,18 @@ on:
   workflow_dispatch:
   release:
     types: [published]
+  workflow_call:
+    inputs:
+      tag:
+        description: The pre-release's tag, already pushed
+        type: string
+        required: true
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ inputs.tag || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
@@ -25,6 +33,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+        with:
+          ref: ${{ inputs.tag }}  # empty: the event's own
 
       - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3  # v4
         with:
@@ -58,17 +68,19 @@ jobs:
 
   release:
     name: Attach the APK to the release
-    if: github.event_name == 'release'
+    if: github.event_name == 'release' || inputs.tag
     needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+        with:
+          ref: ${{ inputs.tag }}  # empty: the event's own
 
       - name: Check the tag matches VERSION
         env:
-          TAG: ${{ github.event.release.tag_name }}
+          TAG: ${{ inputs.tag || github.event.release.tag_name }}
         run: |
           expected="v$(tr -d '[:space:]' < VERSION)"
           if [ "$TAG" != "$expected" ]; then
@@ -77,6 +89,7 @@ jobs:
           fi
 
       - name: Check release candidates are pre-releases
+        if: github.event_name == 'release'
         env:
           TAG: ${{ github.event.release.tag_name }}
           PRERELEASE: ${{ github.event.release.prerelease }}
@@ -121,17 +134,28 @@ jobs:
 
       - name: Check the signature and name the APK
         env:
-          TAG: ${{ github.event.release.tag_name }}
+          TAG: ${{ inputs.tag || github.event.release.tag_name }}
         run: |
           mkdir dist
           cp app/build/outputs/apk/release/app-release.apk "dist/Gazeora-$TAG.apk"
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs "dist/Gazeora-$TAG.apk" | head -3
 
       - name: Upload to the release
+        if: github.event_name == 'release'
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.event.release.tag_name }}
         run: gh release upload "$TAG" dist/*.apk --clobber --repo "$GITHUB_REPOSITORY"
+
+      # Notes from the pull requests merged since the last release
+      - name: Publish the weekly pre-release
+        if: inputs.tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          gh release create "$TAG" dist/*.apk --repo "$GITHUB_REPOSITORY" --verify-tag \
+            --prerelease --title "Gazeora $TAG" --generate-notes
 
       # Once the APK is attached, so the website lists it with the release
       - name: Tell the website
@@ -139,3 +163,4 @@ jobs:
         with:
           platform: android
           site-token: ${{ secrets.GAZEORA_SITE_TOKEN }}
+          tag: ${{ inputs.tag || github.event.release.tag_name }}
