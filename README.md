@@ -98,6 +98,16 @@ The version lives in the `VERSION` file at the root, as `MAJOR.MINOR.PATCH` (`1.
 CI (`.github/workflows/ci.yml`) runs the Java unit tests and the native protocol and room
 geometry tests and builds the debug APK on every pull request.
 
+Every Monday at 00:00 UTC (or by hand: **Actions → Weekly pre-release → Run workflow**),
+`.github/workflows/weekly-release.yml` compares `master` with the highest release so far. If
+anything other than `VERSION` has changed, it releases the next patch as a candidate (after
+`v1.0.1-rc.1` comes `v1.0.2-rc.1`, after a stable `v1.0.3`, `v1.0.4-rc.1`); if nothing has, there's
+no release that week. `master` only takes pull requests, so the workflow tags its own commit on
+top of `master` that sets `VERSION`, and CI builds the signed APK from that tag and publishes the
+pre-release with notes from the pull requests merged since the last release. `VERSION` on
+`master` keeps the last version set by hand. Patch numbers stop at 99, so before then, release
+the next minor version by hand.
+
 ## Architecture
 
 The Java code follows **MVVM + Clean Architecture**. **Hilt** injects all dependencies.
