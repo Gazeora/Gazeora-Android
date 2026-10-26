@@ -12,6 +12,7 @@
 #include "room/head_pose.h"
 #include "room/head_tracker.h"
 #include "room/panorama.h"
+#include "room/room_geometry.h"
 #include "shaders/shader_program.h"
 
 namespace gazeora {
@@ -62,7 +63,8 @@ private:
     RoomRenderer(EGLDisplay display, const EglProcs& procs, const ImageReleaser& releaser);
     bool Build(std::string& error);
     Mat3 HeadNow();
-    float BindBackdrop();  // the shader's backdrop value
+    // The shader's backdrop value; the camera stretched to `reach`.
+    float BindBackdrop(const room_geometry::EyeReach& reach);
     void SetWindow(const HardwareBufferTextures::Texture& picture, const AImageCropRect& crop,
                    float tanPerUnit, EGLint height);
 

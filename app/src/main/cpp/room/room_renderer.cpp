@@ -114,12 +114,15 @@ void RoomRenderer::Draw(const HardwareBufferTextures::Texture& picture, const AI
     float columns[9];
     head.ToColumnMajor(columns);
     glUniformMatrix3fv(m_uniforms.screenToRoom, 1, GL_FALSE, columns);
-    glUniform1f(m_uniforms.backdrop, BindBackdrop());
 
     const float tanPerUnit = room_geometry::TanPerUnit(height, m_dotsPerInch);
+    const EGLint eyeWidth = width / 2;
+    // Both eyes' lens centers sit the same way off their middles, mirrored.
+    glUniform1f(m_uniforms.backdrop,
+                BindBackdrop(room_geometry::ReachOfEye(view.k1, view.k2, float(eyeWidth) / height,
+                                                       view.separation, tanPerUnit)));
     SetWindow(picture, crop, tanPerUnit, height);
     glUniform4f(m_uniforms.lens, view.k1, view.k2, 0, view.chroma);
-    const EGLint eyeWidth = width / 2;
     for (int eye = 0; eye < 2; ++eye) {
         glViewport(eye * eyeWidth, 0, eyeWidth, height);
         float center = eye == 1 ? view.separation : 1 - view.separation;
@@ -142,7 +145,7 @@ Mat3 RoomRenderer::HeadNow() {
     return m_anchor.ScreenToRoom(screenToWorld);
 }
 
-float RoomRenderer::BindBackdrop() {
+float RoomRenderer::BindBackdrop(const room_geometry::EyeReach& reach) {
     AImageCropRect crop = {};
     const HardwareBufferTextures::Texture* camera = m_camera.Latest(crop);
     if (camera) {
@@ -152,6 +155,7 @@ float RoomRenderer::BindBackdrop() {
         const CameraSetup& setup = m_camera.Setup();
         CameraView view = setup.view;
         camera_geometry::SetOrientation(view, setup.sensorOrientation, m_quarterTurns);
+        camera_geometry::FillEye(view, reach);
         const GLfloat toSensor[4] = {float(view.toSensor[0][0]), float(view.toSensor[1][0]),
                                      float(view.toSensor[0][1]), float(view.toSensor[1][1])};
         glUniformMatrix2fv(m_uniforms.viewToSensor, 1, GL_FALSE, toSensor);

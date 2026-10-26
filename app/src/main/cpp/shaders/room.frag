@@ -26,15 +26,13 @@ const float kShadow = 0.4;        // how dark the shadow around the window gets
 const float kShadowReach = 0.14;  // meters
 const float kRim = 0.1;           // a faint light edge, so the window reads as a pane
 const float kRimWidth = 0.008;
-const float kCameraFade = 0.03;   // the camera's edges fade out over this share of it
 
+// Stretched to fill the eye (room_geometry.h, FillEye); the far corners, which the lens barely
+// shows, repeat the picture's edge.
 vec3 Camera(vec3 view) {
     vec2 upright = vec2(view.x, -view.y) / -view.z;
     vec2 at = (viewToSensor * upright) / cameraTan * 0.5 + 0.5;
-    vec2 fade = smoothstep(vec2(0.0), vec2(kCameraFade), at) *
-                smoothstep(vec2(0.0), vec2(kCameraFade), 1.0 - at);
-    vec2 inBuffer = cameraCrop.xy + clamp(at, 0.0, 1.0) * cameraCrop.zw;
-    return texture2D(camera, inBuffer).rgb * fade.x * fade.y;
+    return texture2D(camera, cameraCrop.xy + clamp(at, 0.0, 1.0) * cameraCrop.zw).rgb;
 }
 
 vec3 Scenery(vec3 room) {

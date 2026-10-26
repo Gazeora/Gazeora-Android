@@ -1,5 +1,7 @@
 #include "room/room_geometry.h"
 
+#include <algorithm>
+
 namespace gazeora {
 
 namespace {
@@ -19,6 +21,20 @@ float TanPerUnit(int32_t screenHeightPixels, float dotsPerInch) {
         height = kTypicalScreenHeight;  // some phones report a made-up density
     }
     return height / 2 / kScreenToLens;
+}
+
+EyeReach ReachOfEye(float k1, float k2, float eyeAspect, float lensCenter, float tanPerUnit) {
+    // As room.frag: units of half the eye's height from the lens center, pushed out by the
+    // distortion polynomial.
+    auto distorted = [k1, k2](float r) {
+        float r2 = r * r;
+        return r * (1 + k1 * r2 + k2 * r2 * r2);
+    };
+    float side = 2 * eyeAspect * std::max(lensCenter, 1 - lensCenter);
+    EyeReach reach;
+    reach.across = distorted(side) * tanPerUnit;
+    reach.down = distorted(1) * tanPerUnit;
+    return reach;
 }
 
 }  // namespace room_geometry
@@ -80,6 +96,19 @@ void SetOrientation(CameraView& view, int32_t sensorOrientation, int quarterTurn
     for (int r = 0; r < 2; ++r) {
         for (int c = 0; c < 2; ++c) view.toSensor[r][c] = m[r][c];
     }
+}
+
+void FillEye(CameraView& view, const room_geometry::EyeReach& reach) {
+    // Turned a quarter, the sensor's rows run down the view.
+    bool quarter = view.toSensor[0][0] == 0;
+    float viewAcross = quarter ? view.tanDown : view.tanAcross;
+    float viewDown = quarter ? view.tanAcross : view.tanDown;
+    if (viewAcross <= 0 || viewDown <= 0) {
+        return;
+    }
+    float stretch = std::max({1.0f, reach.across / viewAcross, reach.down / viewDown});
+    view.tanAcross *= stretch;
+    view.tanDown *= stretch;
 }
 
 }  // namespace camera_geometry

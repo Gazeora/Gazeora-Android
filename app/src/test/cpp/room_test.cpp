@@ -132,6 +132,50 @@ TEST(CameraGeometryTest, PicksAStreamThatSeesTheWholeSensor) {
     EXPECT_EQ(camera_geometry::PickStreamSize({}, 4.0f / 3, 1920).width, 0);
 }
 
+TEST(RoomGeometryTest, ReachesThroughTheLens) {
+    // No distortion, centered: the edges are one unit down and the eye's aspect across.
+    room_geometry::EyeReach flat = room_geometry::ReachOfEye(0, 0, 1.2f, 0.5f, 0.8f);
+    EXPECT_NEAR(flat.across, 1.2f * 0.8f, kTolerance);
+    EXPECT_NEAR(flat.down, 0.8f, kTolerance);
+    // The lens pushes them out; an off-center lens sees farther on its far side.
+    room_geometry::EyeReach lens = room_geometry::ReachOfEye(0.34f, 0.55f, 1.0f, 0.4f, 1.0f);
+    EXPECT_NEAR(lens.down, 1 + 0.34f + 0.55f, kTolerance);
+    float side = 1.2f;
+    EXPECT_NEAR(lens.across, side * (1 + 0.34f * side * side + 0.55f * side * side * side * side),
+                1e-4f);
+}
+
+TEST(CameraGeometryTest, StretchesTheCameraEvenlyToFillTheEye) {
+    CameraView view;
+    view.tanAcross = 0.6f;
+    view.tanDown = 0.45f;
+    camera_geometry::SetOrientation(view, 90, 1);  // the sensor's rows run across
+    room_geometry::EyeReach reach;
+    reach.across = 1.2f;
+    reach.down = 1.8f;  // down needs the most: four times
+    camera_geometry::FillEye(view, reach);
+    EXPECT_NEAR(view.tanAcross, 2.4f, kTolerance);
+    EXPECT_NEAR(view.tanDown, 1.8f, kTolerance);
+
+    // Turned a quarter, the sensor's rows run down the view.
+    CameraView turned;
+    turned.tanAcross = 0.6f;
+    turned.tanDown = 0.45f;
+    camera_geometry::SetOrientation(turned, 90, 0);
+    reach.across = 0.9f;  // across is the sensor's down: twice
+    reach.down = 0.6f;
+    camera_geometry::FillEye(turned, reach);
+    EXPECT_NEAR(turned.tanAcross, 1.2f, kTolerance);
+    EXPECT_NEAR(turned.tanDown, 0.9f, kTolerance);
+
+    // Wide enough already: true size.
+    CameraView wide;
+    wide.tanAcross = 3;
+    wide.tanDown = 3;
+    camera_geometry::FillEye(wide, reach);
+    EXPECT_NEAR(wide.tanAcross, 3, kTolerance);
+}
+
 TEST(RoomGeometryTest, MeasuresTheEyesFromTheScreen) {
     // 1080 pixels at 400 dpi: 68.6 mm tall.
     EXPECT_NEAR(room_geometry::TanPerUnit(1080, 400), 1080 / 400.0f * 0.0254f / 2 / 0.039f,

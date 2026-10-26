@@ -25,6 +25,17 @@ constexpr float kMaxScreenHeight = 0.12f;
 // shader measures in: half the eye's height, which is half the screen's.
 float TanPerUnit(int32_t screenHeightPixels, float dotsPerInch);
 
+// How far an eye sees through the lens, as the tangents at the middle of its edges: across
+// (to the side farther from its lens center) and down.
+struct EyeReach {
+    float across = 0;
+    float down = 0;
+};
+
+// For the lens shader's distortion (k1, k2), an eye `eyeAspect` wide for its height with its
+// lens center `lensCenter` (0..1) across it.
+EyeReach ReachOfEye(float k1, float k2, float eyeAspect, float lensCenter, float tanPerUnit);
+
 }  // namespace room_geometry
 
 // The back camera's view: the tangents of half its angle along the sensor's rows and
@@ -58,6 +69,11 @@ void SetAngles(CameraView& view, float focalLengthMm, float sensorWidthMm, float
 // For a back camera mounted `sensorOrientation` degrees (ACAMERA_SENSOR_ORIENTATION) on a
 // display turned `quarterTurns` (Surface.ROTATION_*).
 void SetOrientation(CameraView& view, int32_t sensorOrientation, int quarterTurns);
+
+// Stretches the camera's view evenly (after SetOrientation) until it reaches the eye's edges,
+// so it fills the eye with no dark border; the room then looks bigger than it is. A camera
+// that already reaches that far is left at its true size.
+void FillEye(CameraView& view, const room_geometry::EyeReach& reach);
 
 }  // namespace camera_geometry
 
