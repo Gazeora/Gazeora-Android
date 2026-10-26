@@ -98,10 +98,23 @@ TEST(ViewInfoTest, ReadsWhatThePcSends) {
     EXPECT_FLOAT_EQ(info.separation, 0.52f);
     EXPECT_FLOAT_EQ(info.chroma, 0.01f);
 
+    EXPECT_FALSE(info.app);
+
     Bytes h265 = ViewInfoSei("vr=1 pair=0", true);
     info = FindViewInfo(VideoCodec::H265, h265.data(), h265.size());
     EXPECT_TRUE(info.vr);
     EXPECT_FALSE(info.pair);
+}
+
+TEST(ViewInfoTest, KnowsGazeorasOwnWindow) {
+    Bytes app =
+        ViewInfoSei("vr=1 pair=0 k1=0.340 k2=0.550 scale=0.700 sep=0.500 chroma=0.000 src=app");
+    ViewInfo info = FindViewInfo(VideoCodec::H264, app.data(), app.size());
+    EXPECT_TRUE(info.vr);
+    EXPECT_TRUE(info.app);
+    EXPECT_FLOAT_EQ(info.chroma, 0.0f);
+    Bytes other = ViewInfoSei("vr=1 src=game");
+    EXPECT_FALSE(FindViewInfo(VideoCodec::H264, other.data(), other.size()).app);
 }
 
 TEST(ViewInfoTest, AFrameWithoutItIsShownAsItIs) {

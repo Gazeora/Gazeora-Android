@@ -1,7 +1,6 @@
 #include "video_renderer.h"
 
 #include <android/log.h>
-#include <unistd.h>
 
 #include <algorithm>
 #include <chrono>
@@ -15,25 +14,24 @@ namespace gazeora {
 namespace {
 
 constexpr char kTag[] = "GazeoraRenderer";
-// The decoder's pictures in flight: one it's drawing, one queued, one being shown.
-constexpr int32_t kReaderImages = 4;
+// The decoder's pictures in flight: one it's drawing, one queued, one being shown, and one
+// held by the room view, which draws the shown one again every refresh.
+constexpr int32_t kReaderImages = 5;
 // Buffers whose textures are kept; the decoder cycles through fewer.
 constexpr size_t kMaxTextures = 8;
 // How often to look for a change in the window's size while no pictures come.
 constexpr auto kIdleCheck = std::chrono::milliseconds(100);
+// In the room, frames go out as fast as the display takes them (eglSwapBuffers waits).
+constexpr auto kNoWait = std::chrono::milliseconds(0);
 // View infos waiting for their picture; more means the pictures went elsewhere.
 constexpr size_t kMaxViews = 64;
 
 const GLfloat kQuad[] = {-1, -1, 1, -1, -1, 1, 1, 1};
 
-template <typename Fn>
-Fn Proc(const char* name) {
-    return reinterpret_cast<Fn>(eglGetProcAddress(name));
-}
-
 }  // namespace
 
-VideoRenderer::VideoRenderer(ANativeWindow* window) : m_window(window) {}
+VideoRenderer::VideoRenderer(ANativeWindow* window, std::function<void()> panoramaWanted)
+    : m_window(window), m_panoramaWanted(std::move(panoramaWanted)) {}
 
 VideoRenderer::~VideoRenderer() {
     if (m_thread.joinable()) {
@@ -77,6 +75,17 @@ void VideoRenderer::Expect(int64_t presentationUs, const ViewInfo& view) {
     }
 }
 
+void VideoRenderer::SetScreen(int quarterTurns, float dotsPerInch) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_quarterTurns = quarterTurns;
+    m_dotsPerInch = dotsPerInch;
+}
+
+void VideoRenderer::SetPanorama(Panorama::Pixels pixels) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_panorama = std::move(pixels);
+}
+
 ViewInfo VideoRenderer::ViewFor(int64_t presentationUs) {
     std::lock_guard<std::mutex> lock(m_mutex);
     auto it = m_views.find(presentationUs);
@@ -112,32 +121,48 @@ void VideoRenderer::Run() {
         __android_log_print(ANDROID_LOG_WARN, kTag, "can't render: %s", error.c_str());
     }
 
-    while (ok) {
-        bool image;
-        {
-            std::unique_lock<std::mutex> lock(m_mutex);
-            m_wake.wait_for(lock, kIdleCheck, [this] { return m_stopping || m_imageReady; });
-            if (m_stopping) {
-                break;
-            }
-            image = m_imageReady;
-            m_imageReady = false;
-        }
+    bool image = false;
+    while (ok && Wait(image)) {
         if (image) {
             DrawLatest();
-            continue;
         }
-        // Turned or resized: the last picture again, laid out for the new shape.
-        EGLint width = 0, height = 0;
-        eglQuerySurface(m_display, m_surface, EGL_WIDTH, &width);
-        eglQuerySurface(m_display, m_surface, EGL_HEIGHT, &height);
-        const Texture* shown = TextureFor(m_shown.buffer, false);
-        if (shown && (width != m_shownWidth || height != m_shownHeight)) {
-            Draw(*shown, m_shown);
-            eglSwapBuffers(m_display, m_surface);
+        if (InRoom()) {
+            DrawRoom();
+        } else if (!image) {
+            RedrawIfResized();  // turned or resized: the last picture again, laid out anew
         }
     }
     TearDown();
+}
+
+bool VideoRenderer::Wait(bool& image) {
+    int quarterTurns;
+    float dotsPerInch;
+    Panorama::Pixels panorama;
+    {
+        std::unique_lock<std::mutex> lock(m_mutex);
+        bool room = InRoom() && !m_swapFailed;
+        m_wake.wait_for(lock, room ? kNoWait : kIdleCheck,
+                        [this] { return m_stopping || m_imageReady; });
+        if (m_stopping) {
+            return false;
+        }
+        image = m_imageReady;
+        m_imageReady = false;
+        quarterTurns = m_quarterTurns;
+        dotsPerInch = m_dotsPerInch;
+        std::swap(panorama, m_panorama);
+    }
+    if (m_room) {
+        m_room->SetScreen(quarterTurns, dotsPerInch);
+        if (!panorama.rgba.empty()) {
+            m_room->SetPanorama(std::move(panorama));
+        }
+        if (m_room->TakePanoramaRequest() && m_panoramaWanted) {
+            m_panoramaWanted();
+        }
+    }
+    return true;
 }
 
 bool VideoRenderer::SetUpEgl(std::string& error) {
@@ -169,23 +194,12 @@ bool VideoRenderer::SetUpEgl(std::string& error) {
         error = "EGL surface or context failed (error " + std::to_string(eglGetError()) + ")";
         return false;
     }
-
-    m_getNativeClientBuffer =
-        Proc<PFNEGLGETNATIVECLIENTBUFFERANDROIDPROC>("eglGetNativeClientBufferANDROID");
-    m_createImage = Proc<PFNEGLCREATEIMAGEKHRPROC>("eglCreateImageKHR");
-    m_destroyImage = Proc<PFNEGLDESTROYIMAGEKHRPROC>("eglDestroyImageKHR");
-    m_imageTargetTexture =
-        Proc<PFNGLEGLIMAGETARGETTEXTURE2DOESPROC>("glEGLImageTargetTexture2DOES");
-    const char* extensions = eglQueryString(m_display, EGL_EXTENSIONS);
-    if (extensions && strstr(extensions, "EGL_ANDROID_native_fence_sync")) {
-        m_createSync = Proc<PFNEGLCREATESYNCKHRPROC>("eglCreateSyncKHR");
-        m_destroySync = Proc<PFNEGLDESTROYSYNCKHRPROC>("eglDestroySyncKHR");
-        m_dupFence = Proc<PFNEGLDUPNATIVEFENCEFDANDROIDPROC>("eglDupNativeFenceFDANDROID");
-    }
-    if (!m_getNativeClientBuffer || !m_createImage || !m_destroyImage || !m_imageTargetTexture) {
+    if (!m_procs.Load(m_display)) {
         error = "no EGL images from hardware buffers";
         return false;
     }
+    m_textures = std::make_unique<HardwareBufferTextures>(m_display, m_procs, kMaxTextures);
+    m_releaser = std::make_unique<ImageReleaser>(m_display, m_procs);
     return true;
 }
 
@@ -209,6 +223,13 @@ bool VideoRenderer::SetUpGl(std::string& error) {
     glEnableVertexAttribArray(ShaderProgram::kPositionAttribute);
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_BLEND);
+
+    std::string roomError;
+    m_room = RoomRenderer::Create(m_display, m_procs, *m_releaser, roomError);
+    if (!m_room) {
+        __android_log_print(ANDROID_LOG_WARN, kTag, "no room view, the window shows as a game: %s",
+                            roomError.c_str());
+    }
     return true;
 }
 
@@ -216,59 +237,21 @@ void VideoRenderer::TearDown() {
     if (m_display == EGL_NO_DISPLAY) {
         return;
     }
-    for (Texture& texture : m_textures) {
-        glDeleteTextures(1, &texture.texture);
-        m_destroyImage(m_display, texture.image);
-        AHardwareBuffer_release(texture.buffer);
+    if (m_held) {
+        glFinish();
+        AImage_delete(m_held);
+        m_held = nullptr;
     }
-    m_textures.clear();
+    m_room.reset();  // its camera and textures need the context
+    if (m_textures) {
+        m_textures->Clear();
+    }
     m_program.Release();
     eglMakeCurrent(m_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
     if (m_context != EGL_NO_CONTEXT) eglDestroyContext(m_display, m_context);
     if (m_surface != EGL_NO_SURFACE) eglDestroySurface(m_display, m_surface);
     // Not eglTerminate: the app's own UI draws with the same display.
     eglReleaseThread();
-}
-
-const VideoRenderer::Texture* VideoRenderer::TextureFor(AHardwareBuffer* buffer, bool make) {
-    for (const Texture& texture : m_textures) {
-        if (texture.buffer == buffer) return &texture;
-    }
-    if (!make || !buffer) {
-        return nullptr;
-    }
-    EGLClientBuffer client = m_getNativeClientBuffer(buffer);
-    const EGLint attributes[] = {EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE};
-    EGLImageKHR image = client ? m_createImage(m_display, EGL_NO_CONTEXT,
-                                               EGL_NATIVE_BUFFER_ANDROID, client, attributes)
-                               : EGL_NO_IMAGE_KHR;
-    if (image == EGL_NO_IMAGE_KHR) {
-        return nullptr;
-    }
-    if (m_textures.size() >= kMaxTextures) {
-        Texture& oldest = m_textures.front();
-        glDeleteTextures(1, &oldest.texture);
-        m_destroyImage(m_display, oldest.image);
-        AHardwareBuffer_release(oldest.buffer);
-        m_textures.erase(m_textures.begin());
-    }
-    Texture texture;
-    AHardwareBuffer_acquire(buffer);  // so a buffer seen before is always the same one
-    texture.buffer = buffer;
-    texture.image = image;
-    AHardwareBuffer_Desc desc = {};
-    AHardwareBuffer_describe(buffer, &desc);
-    texture.width = desc.width;
-    texture.height = desc.height;
-    glGenTextures(1, &texture.texture);
-    glBindTexture(GL_TEXTURE_EXTERNAL_OES, texture.texture);
-    glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    m_imageTargetTexture(GL_TEXTURE_EXTERNAL_OES, static_cast<GLeglImageOES>(image));
-    m_textures.push_back(texture);
-    return &m_textures.back();
 }
 
 void VideoRenderer::DrawLatest() {
@@ -284,31 +267,66 @@ void VideoRenderer::DrawLatest() {
     AImage_getCropRect(image, &shown.crop);
     shown.buffer = buffer;
     shown.view = ViewFor(timestampNs / 1000);  // the decoder stamps its pictures in ns
-    const Texture* texture = TextureFor(buffer, true);
+    const HardwareBufferTextures::Texture* texture = m_textures->Make(buffer);
     if (!texture) {
         AImage_delete(image);
         return;
     }
-    Draw(*texture, shown);
     m_shown = shown;
-
-    // The decoder may write the buffer again once the GPU is done reading it.
-    EGLSyncKHR sync = m_createSync ? m_createSync(m_display, EGL_SYNC_NATIVE_FENCE_ANDROID, nullptr)
-                                   : EGL_NO_SYNC_KHR;
-    eglSwapBuffers(m_display, m_surface);
-    int fence = sync != EGL_NO_SYNC_KHR ? m_dupFence(m_display, sync) : -1;
-    if (sync != EGL_NO_SYNC_KHR) {
-        m_destroySync(m_display, sync);
+    if (ShowsRoom(shown.view)) {
+        m_room->Enter();
+        Hold(image);  // DrawRoom draws it, every refresh
+        return;
     }
-    if (fence >= 0) {
-        AImage_deleteAsync(image, fence);
-    } else {
-        glFinish();
-        AImage_delete(image);
+    LeaveRoom();
+    Draw(*texture, shown);
+    // The decoder may write the buffer again once the GPU is done reading it.
+    m_releaser->Release(image);
+    eglSwapBuffers(m_display, m_surface);
+}
+
+void VideoRenderer::RedrawIfResized() {
+    EGLint width = 0, height = 0;
+    eglQuerySurface(m_display, m_surface, EGL_WIDTH, &width);
+    eglQuerySurface(m_display, m_surface, EGL_HEIGHT, &height);
+    const HardwareBufferTextures::Texture* shown = m_textures->Find(m_shown.buffer);
+    if (shown && (width != m_shownWidth || height != m_shownHeight)) {
+        Draw(*shown, m_shown);
+        eglSwapBuffers(m_display, m_surface);
     }
 }
 
-void VideoRenderer::Draw(const Texture& texture, const Shown& shown) {
+bool VideoRenderer::ShowsRoom(const ViewInfo& view) const { return m_room && view.vr && view.app; }
+
+bool VideoRenderer::InRoom() const { return m_room && m_room->Active(); }
+
+void VideoRenderer::DrawRoom() {
+    const HardwareBufferTextures::Texture* texture = m_textures->Find(m_shown.buffer);
+    if (!texture) {
+        return;
+    }
+    eglQuerySurface(m_display, m_surface, EGL_WIDTH, &m_shownWidth);
+    eglQuerySurface(m_display, m_surface, EGL_HEIGHT, &m_shownHeight);
+    m_room->Draw(*texture, m_shown.crop, m_shown.view, m_shownWidth, m_shownHeight);
+    m_swapFailed = eglSwapBuffers(m_display, m_surface) != EGL_TRUE;
+}
+
+void VideoRenderer::Hold(AImage* image) {
+    m_releaser->Release(m_held);  // after the frames that drew it
+    m_held = image;
+}
+
+void VideoRenderer::LeaveRoom() {
+    if (!InRoom()) {
+        return;
+    }
+    m_releaser->Release(m_held);
+    m_held = nullptr;
+    m_room->Leave();
+    m_swapFailed = false;
+}
+
+void VideoRenderer::Draw(const HardwareBufferTextures::Texture& texture, const Shown& shown) {
     eglQuerySurface(m_display, m_surface, EGL_WIDTH, &m_shownWidth);
     eglQuerySurface(m_display, m_surface, EGL_HEIGHT, &m_shownHeight);
     const float width = float(m_shownWidth), height = float(m_shownHeight);
@@ -318,6 +336,7 @@ void VideoRenderer::Draw(const Texture& texture, const Shown& shown) {
     if (texture.width == 0 || texture.height == 0 || width <= 0 || height <= 0) {
         return;
     }
+    m_program.Use();  // the room view draws with its own
 
     const AImageCropRect& c = shown.crop;
     float pictureWidth = float(c.right - c.left), pictureHeight = float(c.bottom - c.top);

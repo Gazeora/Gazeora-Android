@@ -1,7 +1,8 @@
-# Host tests for the native client's protocol code (app/src/main/cpp/protocols), which has
-# no Android in it. Build with any desktop C++17 compiler:
+# Host tests for the native client's protocol code (app/src/main/cpp/protocols) and the room
+# view's geometry (app/src/main/cpp/room), which have no Android in them. Build with any
+# desktop C++17 compiler:
 #   cmake -S app/src/test/cpp -B build/host-tests && cmake --build build/host-tests
-#   build/host-tests/protocols_test
+#   build/host-tests/protocols_test && build/host-tests/room_test
 # GoogleTest comes from GitHub, or from a local copy with -DFETCHCONTENT_SOURCE_DIR_GOOGLETEST=.
 cmake_minimum_required(VERSION 3.22)
 project(gazeora_client_tests CXX)
@@ -30,8 +31,16 @@ add_library(gazeora_protocols STATIC
     ${CLIENT}/protocols/view_info.cpp)
 target_include_directories(gazeora_protocols PUBLIC ${CLIENT})
 
+add_library(gazeora_room_math STATIC
+    ${CLIENT}/room/head_pose.cpp
+    ${CLIENT}/room/room_geometry.cpp)
+target_include_directories(gazeora_room_math PUBLIC ${CLIENT})
+
 add_executable(protocols_test protocols_test.cpp)
 target_link_libraries(protocols_test PRIVATE gazeora_protocols GTest::gtest_main)
+add_executable(room_test room_test.cpp)
+target_link_libraries(room_test PRIVATE gazeora_room_math GTest::gtest_main)
 if(MINGW)
     target_link_options(protocols_test PRIVATE -static)
+    target_link_options(room_test PRIVATE -static)
 endif()

@@ -31,6 +31,8 @@ public:
         // How the picture is shown: for a VR viewer or flat, and its size; again whenever
         // either changes. Touches only make sense on a flat one.
         virtual void OnPicture(bool vr, int width, int height) = 0;
+        // Once, when the room view needs the 360 scene: answer with SetPanorama.
+        virtual void OnPanoramaWanted() = 0;
     };
 
     // Takes over `window`'s reference.
@@ -46,6 +48,10 @@ public:
                const std::string& path);
     // A touch for the PC's mouse, on the way the stream came. Doesn't block.
     void SendPointer(const PointerEvent& event);
+    // The display's turn (Surface.ROTATION_*) and density, for the room view.
+    void SetScreen(int quarterTurns, float dotsPerInch);
+    // The room view's 360 scene.
+    void SetPanorama(Panorama::Pixels pixels);
 
 private:
     void OnFrame(AccessUnit&& frame) override;

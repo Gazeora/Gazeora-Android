@@ -7,6 +7,11 @@
     <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
     <!-- The low-latency Wi-Fi lock while a stream plays. -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- The room behind Gazeora's window in a VR viewer; without it, a 360 scene. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
     <!-- The USB protocol; the others work without it. -->
     <uses-feature
         android:name="android.hardware.usb.accessory"

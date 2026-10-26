@@ -39,11 +39,12 @@ jobs:
       - name: Java unit tests
         run: ./gradlew testDebugUnitTest
 
-      - name: Native protocol tests
+      - name: Native protocol and room geometry tests
         run: |
           cmake -S app/src/test/cpp -B build/host-tests
           cmake --build build/host-tests --parallel
           build/host-tests/protocols_test
+          build/host-tests/room_test
 
       - name: Build the debug APK
         run: ./gradlew assembleDebug

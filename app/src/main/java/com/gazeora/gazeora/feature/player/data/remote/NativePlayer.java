@@ -1,5 +1,6 @@
 package com.gazeora.gazeora.feature.player.data.remote;
 
+import android.graphics.Bitmap;
 import android.os.Handler;
 import android.view.Surface;
 
@@ -11,8 +12,10 @@ import com.gazeora.gazeora.core.nativebridge.NativeLibrary;
 import com.gazeora.gazeora.core.stream.domain.model.StreamTarget;
 import com.gazeora.gazeora.feature.player.data.decoder.DecoderChoice;
 import com.gazeora.gazeora.feature.player.data.mapper.PlayerStatusMapper;
+import com.gazeora.gazeora.feature.player.data.room.PanoramaSource;
 import com.gazeora.gazeora.feature.player.domain.model.PlayerStatus;
 import com.gazeora.gazeora.feature.player.domain.model.PointerCommand;
+import com.gazeora.gazeora.feature.player.domain.model.ScreenGeometry;
 import com.gazeora.gazeora.feature.player.domain.model.StreamPicture;
 import com.gazeora.gazeora.feature.player.domain.player.PlaybackListener;
 import com.gazeora.gazeora.feature.player.domain.player.PlaybackSession;
@@ -32,13 +35,15 @@ final class NativePlayer implements PlaybackSession {
     private final Handler main;
     private final PlaybackListener listener;
     private final PlayerStatusMapper statuses;
+    private final PanoramaSource panoramas;
     private long handle = NO_HANDLE;
 
     NativePlayer(@NonNull Handler main, @NonNull PlaybackListener listener,
-            @NonNull PlayerStatusMapper statuses) {
+            @NonNull PlayerStatusMapper statuses, @NonNull PanoramaSource panoramas) {
         this.main = main;
         this.listener = listener;
         this.statuses = statuses;
+        this.panoramas = panoramas;
     }
 
     void start(@NonNull Surface surface, @NonNull StreamTarget target,
@@ -48,6 +53,13 @@ final class NativePlayer implements PlaybackSession {
                 decoders.isAvcLowLatency(), decoders.isHevcLowLatency());
         if (handle == NO_HANDLE) {
             main.post(() -> listener.onStatus(PlayerStatus.FAILED, null));
+        }
+    }
+
+    @Override
+    public void setScreen(@NonNull ScreenGeometry screen) {
+        if (handle != NO_HANDLE) {
+            nativeSetScreen(handle, screen.getQuarterTurns(), screen.getDotsPerInch());
         }
     }
 
@@ -92,6 +104,16 @@ final class NativePlayer implements PlaybackSession {
         whilePlaying(() -> listener.onPicture(picture));
     }
 
+    @Keep
+    private void onNativePanoramaWanted() {
+        panoramas.load(scene -> main.post(() -> {
+            if (handle != NO_HANDLE) {
+                nativeSetPanorama(handle, scene);  // copied: the bitmap can go
+            }
+            scene.recycle();
+        }));
+    }
+
     private void whilePlaying(@NonNull Runnable action) {
         main.post(() -> {
             if (handle != NO_HANDLE) {
@@ -108,4 +130,8 @@ final class NativePlayer implements PlaybackSession {
 
     private static native void nativeSendPointer(long handle, int action, int button, float x,
             float y, int wheelVertical, int wheelHorizontal);
+
+    private static native void nativeSetScreen(long handle, int quarterTurns, float dotsPerInch);
+
+    private static native void nativeSetPanorama(long handle, @NonNull Bitmap scene);
 }

@@ -1,8 +1,10 @@
 // The Java side's way in: NativePlayer.java, NativeDiscovery.java and NativeUsbLink.java.
 
+#include <android/bitmap.h>
 #include <android/native_window_jni.h>
 #include <jni.h>
 
+#include <cstring>
 #include <memory>
 #include <string>
 #include <vector>
@@ -64,6 +66,7 @@ public:
         m_onVideoSize = env->GetMethodID(type, "onNativeVideoSize", "(II)V");
         m_onFirstFrame = env->GetMethodID(type, "onNativeFirstFrame", "()V");
         m_onPicture = env->GetMethodID(type, "onNativePicture", "(ZII)V");
+        m_onPanoramaWanted = env->GetMethodID(type, "onNativePanoramaWanted", "()V");
         env->DeleteLocalRef(type);
     }
     ~JavaPlayerListener() override { Env()->DeleteGlobalRef(m_player); }
@@ -96,12 +99,19 @@ public:
         ClearException(env);
     }
 
+    void OnPanoramaWanted() override {
+        JNIEnv* env = Env();
+        env->CallVoidMethod(m_player, m_onPanoramaWanted);
+        ClearException(env);
+    }
+
 private:
     jobject m_player;
     jmethodID m_onStatus;
     jmethodID m_onVideoSize;
     jmethodID m_onFirstFrame;
     jmethodID m_onPicture;
+    jmethodID m_onPanoramaWanted;
 };
 
 // NativePlayer's pointer ids are the wire's (protocols/pointer_message.h).
@@ -113,6 +123,28 @@ bool ToPointerEvent(jint action, jint button, PointerEvent& event) {
     event.action = PointerAction(action);
     event.button = PointerButton(button);
     return true;
+}
+
+// An RGBA_8888 bitmap's pixels, rows packed tightly; empty if it's another format.
+Panorama::Pixels CopyPixels(JNIEnv* env, jobject bitmap) {
+    Panorama::Pixels pixels;
+    AndroidBitmapInfo info = {};
+    void* data = nullptr;
+    if (AndroidBitmap_getInfo(env, bitmap, &info) != ANDROID_BITMAP_RESULT_SUCCESS ||
+        info.format != ANDROID_BITMAP_FORMAT_RGBA_8888 ||
+        AndroidBitmap_lockPixels(env, bitmap, &data) != ANDROID_BITMAP_RESULT_SUCCESS) {
+        return pixels;
+    }
+    const size_t row = size_t(info.width) * 4;
+    pixels.rgba.resize(row * info.height);
+    for (uint32_t y = 0; y < info.height; ++y) {
+        std::memcpy(pixels.rgba.data() + y * row, static_cast<uint8_t*>(data) + y * info.stride,
+                    row);
+    }
+    AndroidBitmap_unlockPixels(env, bitmap);
+    pixels.width = int32_t(info.width);
+    pixels.height = int32_t(info.height);
+    return pixels;
 }
 
 struct PlayerHandle {
@@ -186,6 +218,22 @@ JNIEXPORT void JNICALL Java_com_gazeora_gazeora_feature_player_data_remote_Nativ
     event.wheelVertical = wheelVertical;
     event.wheelHorizontal = wheelHorizontal;
     handle->player->SendPointer(event);
+}
+
+JNIEXPORT void JNICALL Java_com_gazeora_gazeora_feature_player_data_remote_NativePlayer_nativeSetScreen(
+    JNIEnv*, jclass, jlong pointer, jint quarterTurns, jfloat dotsPerInch) {
+    auto* handle = reinterpret_cast<PlayerHandle*>(pointer);
+    if (handle) {
+        handle->player->SetScreen(quarterTurns, dotsPerInch);
+    }
+}
+
+JNIEXPORT void JNICALL Java_com_gazeora_gazeora_feature_player_data_remote_NativePlayer_nativeSetPanorama(
+    JNIEnv* env, jclass, jlong pointer, jobject bitmap) {
+    auto* handle = reinterpret_cast<PlayerHandle*>(pointer);
+    if (handle && bitmap) {
+        handle->player->SetPanorama(CopyPixels(env, bitmap));
+    }
 }
 
 JNIEXPORT jboolean JNICALL Java_com_gazeora_gazeora_core_usb_data_NativeUsbLink_nativeIsOpen(
