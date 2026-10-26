@@ -20,9 +20,12 @@ The PC side is the separate **Gazeora** project. This app is only the viewer.
 - **Hardware decoding.** H.264 and H.265 are decoded with `MediaCodec`, using low-latency decoders
   where the device has them.
 - **Gazeora's window in the room.** In a VR viewer, while no game runs, the PC's Gazeora window
-  floats in the air about 2 m ahead, over the back camera's picture, and stays put as the head
-  turns (the rotation sensor). Without the camera (permission refused, in use, or covered), it
-  floats in a 360° lake scene instead. Games still fill both eyes.
+  floats in the air about 2 m ahead, over the back camera's picture (stretched to fill the
+  view), and stays put as the head turns (the rotation sensor). Without the camera (permission
+  refused, in use, or covered), it floats in a 360° lake scene instead. Games still fill both
+  eyes.
+- **Steady in the viewer.** While the picture is for a VR viewer, the screen stays in the
+  landscape it was in, so tilting the head doesn't turn it over.
 - **Manual connection.** You can type a `host[:port]` instead. The app remembers the last one.
 
 ## Requirements

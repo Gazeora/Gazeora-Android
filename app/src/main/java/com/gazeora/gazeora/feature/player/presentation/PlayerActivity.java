@@ -11,6 +11,7 @@ import com.gazeora.gazeora.R;
 import com.gazeora.gazeora.core.ui.AspectRatioLayout;
 import com.gazeora.gazeora.feature.player.presentation.components.CameraPermissionRequester;
 import com.gazeora.gazeora.feature.player.presentation.components.ImmersiveWindow;
+import com.gazeora.gazeora.feature.player.presentation.components.OrientationLock;
 import com.gazeora.gazeora.feature.player.presentation.components.PictureTouchListener;
 import com.gazeora.gazeora.feature.player.presentation.components.ScreenGeometryWatcher;
 import com.gazeora.gazeora.feature.player.presentation.components.StatusOverlay;
@@ -42,7 +43,11 @@ public final class PlayerActivity extends AppCompatActivity {
         ImmersiveWindow.apply(getWindow());
         viewModel.getUiState().observe(this, state -> state.render(overlay));
         viewModel.getAspectRatio().observe(this, frameLayout::setAspectRatio);
-        viewModel.getPicture().observe(this, touches::setPicture);
+        OrientationLock orientation = new OrientationLock(this);
+        viewModel.getPicture().observe(this, picture -> {
+            touches.setPicture(picture);
+            orientation.follow(picture);
+        });
         screens = new ScreenGeometryWatcher(this, viewModel::onScreenChanged);
         CameraPermissionRequester camera = new CameraPermissionRequester(this);
         if (savedInstanceState == null) {

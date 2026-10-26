@@ -13,6 +13,13 @@ public class StreamPictureTest {
     }
 
     @Test
+    public void knowsWhenItsForAViewer() {
+        assertTrue(new StreamPicture(true, 1920, 1080).isForViewer());
+        assertFalse(new StreamPicture(false, 1920, 1080).isForViewer());
+        assertFalse(StreamPicture.NONE.isForViewer());
+    }
+
+    @Test
     public void noPictureYetTakesNoTouches() {
         assertFalse(StreamPicture.NONE.acceptsTouch());
     }

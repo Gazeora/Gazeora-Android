@@ -20,6 +20,11 @@ public final class StreamPicture {
         this.height = height;
     }
 
+    /** Shown for a VR viewer, in two lenses. */
+    public boolean isForViewer() {
+        return vr;
+    }
+
     /** Touches only land somewhere on a flat picture: a VR viewer shows it in two lenses. */
     public boolean acceptsTouch() {
         return !vr && width > 0 && height > 0;
