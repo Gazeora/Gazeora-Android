@@ -60,7 +60,8 @@ void ParseText(const std::string& text, ViewInfo& info) {
         }
         std::string key = pair.substr(0, equals);
         float value = std::strtof(pair.c_str() + equals + 1, nullptr);
-        if (key == "vr") info.vr = value != 0;
+        if (key == "src") info.app = pair.compare(equals + 1, std::string::npos, "app") == 0;
+        else if (key == "vr") info.vr = value != 0;
         else if (key == "pair") info.pair = value != 0;
         else if (key == "k1") info.k1 = value;
         else if (key == "k2") info.k2 = value;
