@@ -39,6 +39,13 @@ add_library(gazeora_hands_math STATIC
 target_include_directories(gazeora_hands_math PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_compile_options(gazeora_hands_math PRIVATE -Wall -Wextra)
 
+# The head's orientation math, also without Android, for the host tests.
+add_library(gazeora_head_math STATIC
+    head/head_orientation.cpp
+    head/quaternion.cpp)
+target_include_directories(gazeora_head_math PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_compile_options(gazeora_head_math PRIVATE -Wall -Wextra)
+
 # The shaders (shaders/*.vert, *.frag), as C++ strings in generated headers: shaders/<file>.h.
 set(GENERATED_DIR ${CMAKE_CURRENT_BINARY_DIR}/generated)
 function(embed_shader SHADER_FILE SHADER_NAME)
@@ -74,6 +81,9 @@ add_library(gazeora_client SHARED
     hands/hand_models.cpp
     hands/hand_renderer.cpp
     hands/hand_tracker.cpp
+    head/head_pose_sender.cpp
+    head/head_tracker.cpp
+    head/rotation_sensor.cpp
     jni.cpp
     links/message_link_factory.cpp
     links/udp_message_link.cpp
@@ -91,5 +101,5 @@ add_library(gazeora_client SHARED
     sources/usb_link.cpp)
 target_include_directories(gazeora_client PRIVATE ${GENERATED_DIR})
 target_compile_options(gazeora_client PRIVATE -Wall -Wextra)
-target_link_libraries(gazeora_client PRIVATE gazeora_protocols gazeora_hands_math litert
+target_link_libraries(gazeora_client PRIVATE gazeora_protocols gazeora_hands_math gazeora_head_math litert
     litert_gpu mediandk camera2ndk android nativewindow EGL GLESv2 log)

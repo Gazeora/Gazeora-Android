@@ -1,11 +1,11 @@
 # Copyright (C) 2026 Nithin Aashik
 # SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-Gazeora-Commercial
 
-# Host tests for the native client's protocol code (app/src/main/cpp/protocols) and the hands'
-# geometry and camera pictures (app/src/main/cpp/hands), which have no Android in them. Build with any
-# desktop C++17 compiler:
+# Host tests for the native client's protocol code (app/src/main/cpp/protocols), the hands'
+# geometry and camera pictures (app/src/main/cpp/hands) and the head's orientation
+# (app/src/main/cpp/head), which have no Android in them. Build with any desktop C++17 compiler:
 #   cmake -S app/src/test/cpp -B build/host-tests && cmake --build build/host-tests
-#   build/host-tests/protocols_test && build/host-tests/hands_test
+#   build/host-tests/protocols_test && build/host-tests/hands_test && build/host-tests/head_test
 # GoogleTest comes from GitHub, or from a local copy with -DFETCHCONTENT_SOURCE_DIR_GOOGLETEST=.
 cmake_minimum_required(VERSION 3.22)
 project(gazeora_client_tests CXX)
@@ -49,11 +49,19 @@ add_library(gazeora_hands_math STATIC
     ${CLIENT}/hands/view_geometry.cpp)
 target_include_directories(gazeora_hands_math PUBLIC ${CLIENT})
 
+add_library(gazeora_head_math STATIC
+    ${CLIENT}/head/head_orientation.cpp
+    ${CLIENT}/head/quaternion.cpp)
+target_include_directories(gazeora_head_math PUBLIC ${CLIENT})
+
 add_executable(protocols_test protocols_test.cpp)
 target_link_libraries(protocols_test PRIVATE gazeora_protocols GTest::gtest_main)
 add_executable(hands_test hands_test.cpp)
 target_link_libraries(hands_test PRIVATE gazeora_hands_math GTest::gtest_main)
+add_executable(head_test head_test.cpp)
+target_link_libraries(head_test PRIVATE gazeora_head_math GTest::gtest_main)
 if(MINGW)
     target_link_options(protocols_test PRIVATE -static)
     target_link_options(hands_test PRIVATE -static)
+    target_link_options(head_test PRIVATE -static)
 endif()

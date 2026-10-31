@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 
+#include "head/head_tracker.h"
 #include "links/message_link.h"
 #include "pointer/pointer_sender.h"
 #include "sources/stream_source.h"
@@ -21,7 +22,8 @@ namespace gazeora {
 // Plays the PC's stream onto a window, over whichever protocol Gazeora streams with: a source
 // for the protocol, the decoder, and the renderer that lays each picture out (for a VR viewer
 // when the PC says so). Where OpenGL ES won't run, the decoder draws straight to the window,
-// as it is.
+// as it is. Touches, and while the picture is shown for a viewer the head's turns, go back to
+// the PC.
 class Player : private SourceSink, private VideoDecoder::Listener {
 public:
     // From the player's threads.
@@ -51,7 +53,7 @@ public:
                const std::string& path);
     // A touch for the PC's mouse, on the way the stream came. Doesn't block.
     void SendPointer(const PointerEvent& event);
-    // The display's turn (Surface.ROTATION_*) and density, for the hands.
+    // The display's turn (Surface.ROTATION_*) and density, for the hands and the head.
     void SetScreen(int quarterTurns, float dotsPerInch);
 
 private:
@@ -72,6 +74,8 @@ private:
     std::unique_ptr<StreamSource> m_source;
     std::shared_ptr<MessageLink> m_link;
     std::unique_ptr<PointerSender> m_pointer;
+    std::unique_ptr<HeadTracker> m_head;
+    int m_quarterTurns = 0;
 
     std::mutex m_pictureMutex;
     bool m_vr = false;

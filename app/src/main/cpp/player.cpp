@@ -5,6 +5,7 @@
 
 #include <android/log.h>
 
+#include "head/rotation_sensor.h"
 #include "sources/http_source.h"
 #include "sources/rtsp_source.h"
 #include "sources/udp_source.h"
@@ -34,12 +35,14 @@ Player::Player(ANativeWindow* window, DecoderChoice decoders, HandsOptions hands
 Player::~Player() {
     // The source first, so no frames arrive at a decoder that's gone; the decoder can still
     // ask the source for a key frame until it's gone too. The renderer outlives the decoder
-    // drawing into it, and the window outlives both.
+    // drawing into it, and the window outlives both. The head outlives the decoder telling it
+    // what the picture is.
     m_pointer.reset();
     if (m_source) {
         m_source->Stop();
     }
     m_decoder.reset();
+    m_head.reset();
     m_source.reset();
     m_renderer.reset();
     ANativeWindow_release(m_window);
@@ -61,6 +64,8 @@ bool Player::Start(const std::string& protocol, const std::string& host, uint16_
     }
     m_link = CreateMessageLink(protocol, host);
     m_pointer = CreatePointerSender(m_link);
+    m_head = std::make_unique<HeadTracker>(std::make_unique<RotationSensor>(),
+                                           HeadPoseSender(m_link), m_quarterTurns);
     m_source->Start();
     return true;
 }
@@ -77,6 +82,10 @@ void Player::SendPointer(const PointerEvent& event) {
 }
 
 void Player::SetScreen(int quarterTurns, float dotsPerInch) {
+    m_quarterTurns = quarterTurns;
+    if (m_head) {
+        m_head->SetScreen(quarterTurns);
+    }
     if (m_renderer) {
         m_renderer->SetScreen(quarterTurns, dotsPerInch);
     }
@@ -106,6 +115,10 @@ void Player::OnVideoSize(int width, int height) {
 void Player::OnFrameQueued(int64_t presentationUs, const ViewInfo& view) {
     if (m_renderer) {
         m_renderer->Expect(presentationUs, view);
+    }
+    if (m_head) {
+        // Over Gazeora's window too: a game the PC doesn't capture still takes the head's turns.
+        m_head->SetActive(view.vr);
     }
     std::unique_lock<std::mutex> lock(m_pictureMutex);
     if (view.vr == m_vr) {
