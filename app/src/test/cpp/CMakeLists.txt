@@ -23,6 +23,7 @@ FetchContent_MakeAvailable(googletest)
 set(CLIENT ${CMAKE_CURRENT_SOURCE_DIR}/../../main/cpp)
 add_library(gazeora_protocols STATIC
     ${CLIENT}/protocols/annex_b.cpp
+    ${CLIENT}/protocols/camera_status_message.cpp
     ${CLIENT}/protocols/discovery_reply.cpp
     ${CLIENT}/protocols/frame_assembler.cpp
     ${CLIENT}/protocols/gzf.cpp

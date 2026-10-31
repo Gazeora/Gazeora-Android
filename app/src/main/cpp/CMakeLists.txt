@@ -10,6 +10,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # The protocols, without Android: the host tests (app/src/test/cpp) build these too.
 add_library(gazeora_protocols STATIC
     protocols/annex_b.cpp
+    protocols/camera_status_message.cpp
     protocols/discovery_reply.cpp
     protocols/frame_assembler.cpp
     protocols/gzf.cpp

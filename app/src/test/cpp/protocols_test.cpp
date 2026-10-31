@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "protocols/annex_b.h"
+#include "protocols/camera_status_message.h"
 #include "protocols/discovery_reply.h"
 #include "protocols/frame_assembler.h"
 #include "protocols/gzf.h"
@@ -238,6 +239,21 @@ TEST(HeadPoseMessageTest, IsAGzfMessageWithItsPayload) {
     EXPECT_EQ(int16_t(payload[6] << 8 | payload[7]), 16384);
     EXPECT_EQ(int16_t(payload[8] << 8 | payload[9]), 0);
     EXPECT_EQ(int16_t(payload[10] << 8 | payload[11]), 32767);
+}
+
+TEST(CameraStatusMessageTest, IsAGzfMessageWithItsPayload) {
+    CameraReport report;
+    report.state = CameraState::Dark;
+    report.brightness = 17;
+    Bytes message = CameraStatusMessage::Write(report);
+    ASSERT_EQ(message.size(), kGzfHeaderSize + CameraStatusMessage::kPayloadSize);
+
+    GzfHeader header;
+    ASSERT_TRUE(GzfHeader::Read(message.data(), message.size(), header));
+    EXPECT_EQ(header.type, uint8_t(GzfType::CameraStatus));
+    EXPECT_EQ(header.tail, CameraStatusMessage::kPayloadSize);
+    EXPECT_EQ(message[kGzfHeaderSize], 3);
+    EXPECT_EQ(message[kGzfHeaderSize + 1], 17);
 }
 
 class FrameAssemblerTest : public ::testing::Test {
