@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "hands/camera_frame.h"
+#include "hands/camera_light_gate.h"
 #include "hands/hand_detection.h"
 #include "hands/hand_follower.h"
 #include "hands/hand_geometry.h"
@@ -1357,6 +1358,78 @@ TEST(HandFollowerTest, FollowsAHandSeenTwiceOnce) {
     follower.Update({Seen(0.5f, 0.9f, 0.2f, 0), Seen(0.75f, 0.9f, 0.2f, 0)}, kCameraTan,
                     kCameraTan, 0.2);
     EXPECT_EQ(follower.Hands(0.2).size(), 2u);
+}
+
+
+class CameraLightGateTest : public ::testing::Test {
+protected:
+    // The camera as the gate wants it, its pictures `brightness` bright, for `ms`.
+    void Run(float brightness, int64_t ms) {
+        for (int64_t end = now + ms; now < end; now += kStepMs) {
+            CameraSighting seen;
+            seen.running = gate.WantsCamera();
+            seen.brightness = seen.running ? brightness : -1;
+            gate.Update(seen, now);
+        }
+    }
+
+    static constexpr int64_t kStepMs = 50;
+    int64_t now = 1000;
+    CameraLightGate gate;
+};
+
+TEST_F(CameraLightGateTest, OnWhileThereIsLight) {
+    EXPECT_FALSE(gate.WantsCamera());
+    EXPECT_EQ(gate.Status(), CameraState::Off);
+    gate.Start(now);
+    EXPECT_TRUE(gate.WantsCamera());
+    EXPECT_EQ(gate.Status(), CameraState::Starting);
+    Run(0.4f, 20000);
+    EXPECT_TRUE(gate.WantsCamera());
+    EXPECT_EQ(gate.Status(), CameraState::On);
+    gate.Stop();
+    EXPECT_FALSE(gate.WantsCamera());
+    EXPECT_EQ(gate.Status(), CameraState::Off);
+}
+
+TEST_F(CameraLightGateTest, OffInTheDarkAndBackWhenTheLightIs) {
+    gate.Start(now);
+    Run(0.03f, CameraLightGate::kSettleMs + CameraLightGate::kDarkForMs - 500);
+    EXPECT_TRUE(gate.WantsCamera()) << "a moment's dark, as a hand over the lens, isn't enough";
+    Run(0.03f, 1000);
+    EXPECT_FALSE(gate.WantsCamera());
+    EXPECT_EQ(gate.Status(), CameraState::Dark);
+
+    // Still dark: a check, then off again.
+    Run(0.03f, CameraLightGate::kRestMs);
+    EXPECT_EQ(gate.Status(), CameraState::Checking);
+    Run(0.03f, CameraLightGate::kSettleMs + 2 * kStepMs);
+    EXPECT_EQ(gate.Status(), CameraState::Dark);
+
+    // The light's back: the next check keeps it on.
+    Run(0.5f, CameraLightGate::kRestMs + CameraLightGate::kSettleMs + 2 * kStepMs);
+    EXPECT_TRUE(gate.WantsCamera());
+    EXPECT_EQ(gate.Status(), CameraState::On);
+}
+
+TEST_F(CameraLightGateTest, DimLightKeepsItAsItIs) {
+    const float dim = (CameraLightGate::kDarkLuma + CameraLightGate::kLightLuma) / 2;
+    gate.Start(now);
+    Run(dim, 20000);
+    EXPECT_EQ(gate.Status(), CameraState::On) << "not dark enough to go off";
+    Run(0.0f, 5000);
+    ASSERT_EQ(gate.Status(), CameraState::Dark);
+    Run(dim, 30000);
+    EXPECT_NE(gate.Status(), CameraState::On) << "not light enough to come on";
+}
+
+TEST_F(CameraLightGateTest, ACameraThatWontOpenIsUnavailable) {
+    gate.Start(now);
+    CameraSighting failed;
+    failed.failed = true;
+    gate.Update(failed, now);
+    EXPECT_TRUE(gate.WantsCamera()) << "the feed tries again";
+    EXPECT_EQ(gate.Status(), CameraState::Unavailable);
 }
 
 }  // namespace

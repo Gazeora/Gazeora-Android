@@ -38,6 +38,7 @@ target_include_directories(gazeora_protocols PUBLIC ${CLIENT})
 
 add_library(gazeora_hands_math STATIC
     ${CLIENT}/hands/camera_frame.cpp
+    ${CLIENT}/hands/camera_light_gate.cpp
     ${CLIENT}/hands/hand_detection.cpp
     ${CLIENT}/hands/hand_follower.cpp
     ${CLIENT}/hands/hand_geometry.cpp

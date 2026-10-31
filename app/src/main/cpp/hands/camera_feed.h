@@ -43,12 +43,16 @@ public:
     // Every frame while open: tries again once it's time.
     void Poll();
     bool Running() const { return m_state == State::Running; }
+    bool Failed() const { return m_state == State::Failed; }
+    bool Closed() const { return m_state == State::Closed; }
     // The display's turn (Surface.ROTATION_*), which stands the copies upright.
     void SetQuarterTurns(int quarterTurns) { m_quarterTurns = quarterTurns; }
     // The camera's; only meaningful while Running.
     const CameraSetup& Setup() const { return m_setup; }
     // The room's light, as the latest picture shows it; from any thread.
     SceneLight Light();
+    // How bright the latest picture is on average, 0..1; below 0 before the first since Open.
+    float Brightness() const { return m_brightness; }
 
 private:
     enum class State { Closed, Opening, Running, Failed };
@@ -88,6 +92,7 @@ private:
     int m_sinceLight = 0;       // the callback's: pictures since it last looked at the light
     std::mutex m_lightMutex;
     SceneLight m_light;  // with m_lightMutex
+    std::atomic<float> m_brightness{-1};
 };
 
 }  // namespace gazeora

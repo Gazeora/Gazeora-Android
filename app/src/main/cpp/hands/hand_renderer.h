@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "hands/camera_feed.h"
+#include "hands/camera_light_gate.h"
 #include "hands/hand_overlay.h"
 #include "hands/hand_shapes.h"
 #include "hands/hand_tracker.h"
@@ -46,7 +47,7 @@ public:
     HandRenderer(const HandRenderer&) = delete;
     HandRenderer& operator=(const HandRenderer&) = delete;
 
-    // Gazeora's window appeared: the camera on.
+    // Gazeora's window appeared: the camera on, while there's light enough to see hands.
     void Enter();
     // Back to games: the camera off.
     void Leave();
@@ -83,6 +84,8 @@ private:
     void Pose(const std::vector<HandSkeleton>& hands, double now);
     // Each hand's triangles, its outline then itself, through the eye set up already.
     void DrawHands();
+    // Turns the camera on or off as the light gate says, and reports how it stands.
+    void PowerCamera();
 
     ShaderProgram m_program;
     Uniforms m_uniforms;
@@ -94,6 +97,7 @@ private:
     HandPointer::Cursor m_cursor;
     HandTracker m_tracker;
     CameraFeed m_camera;  // after the tracker, which it gives its pictures
+    CameraLightGate m_gate;
     HandOverlay m_hands;
     // The rigged hand, made on its own thread at first: no hands till it's ready.
     std::future<const RiggedHand*> m_making;

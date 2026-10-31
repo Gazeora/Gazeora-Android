@@ -27,6 +27,7 @@ target_compile_options(gazeora_protocols PRIVATE -Wall -Wextra)
 # The hands' geometry and camera pictures, also without Android, for the host tests.
 add_library(gazeora_hands_math STATIC
     hands/camera_frame.cpp
+    hands/camera_light_gate.cpp
     hands/hand_detection.cpp
     hands/hand_follower.cpp
     hands/hand_geometry.cpp
