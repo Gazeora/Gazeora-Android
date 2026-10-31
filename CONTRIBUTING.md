@@ -8,7 +8,9 @@ don't need to write code to help.
 - **Report a problem.**
   [Open an issue](https://github.com/Gazeora/Gazeora-Android/issues/new/choose) and pick the
   form that fits: bug report, crash or freeze, performance problem, or feature request. Name
-  your phone, its Android version, the stream protocol and the codec.
+  your phone, its Android version, the stream protocol and the codec. **Report a problem**
+  under **About** in the app opens the bug report with the app version and phone already
+  filled in.
 - **Tell us how your phone does.** Whether the stream plays smoothly, how the VR viewer looks
   and whether USB works on a phone model is as useful as a bug report: it builds the list of
   tested phones.

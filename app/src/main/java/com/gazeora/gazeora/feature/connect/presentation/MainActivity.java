@@ -3,9 +3,12 @@
 
 package com.gazeora.gazeora.feature.connect.presentation;
 
+import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.hardware.usb.UsbManager;
+import android.net.Uri;
 import android.os.Bundle;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -82,10 +85,19 @@ public final class MainActivity extends AppCompatActivity implements ConnectEven
         networkPermission.request();
     }
 
+    @Override
+    public void openWebPage(@NonNull String url) {
+        try {
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
+        } catch (ActivityNotFoundException e) {
+            Toast.makeText(this, R.string.about_no_browser, Toast.LENGTH_LONG).show();
+        }
+    }
+
     private void bindViews(boolean freshLaunch) {
         PcListView pcList = new PcListView(this, new PcListListener());
         ManualEntryView manualEntry = new ManualEntryView(this, new ManualEntryListener());
-        new AboutView(this).render(BuildConfig.VERSION_NAME);
+        new AboutView(this, this::onReportProblem).render(BuildConfig.VERSION_NAME);
         if (freshLaunch) {
             manualEntry.setAddress(viewModel.getInitialAddress());
         }
@@ -106,6 +118,10 @@ public final class MainActivity extends AppCompatActivity implements ConnectEven
 
     private void onNetworkPermissionResult(@NonNull Boolean granted) {
         viewModel.onNetworkPermissionResult(granted);
+    }
+
+    private void onReportProblem() {
+        viewModel.onReportProblem(BuildConfig.VERSION_NAME);
     }
 
     private static boolean isAccessoryIntent(@Nullable Intent intent) {

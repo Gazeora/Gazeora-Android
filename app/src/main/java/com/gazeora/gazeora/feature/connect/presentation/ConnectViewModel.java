@@ -136,6 +136,10 @@ public final class ConnectViewModel extends ViewModel implements PcsListener {
         openWhenPermitted(target.get());
     }
 
+    public void onReportProblem(@NonNull String appVersion) {
+        events.post(new OpenWebPageEvent(useCases.issueLink().execute(appVersion)));
+    }
+
     public void onNetworkPermissionResult(boolean granted) {
         StreamTarget waiting = waitingForPermission;
         waitingForPermission = null;

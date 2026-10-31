@@ -4,8 +4,10 @@ The messages the app shows, what they mean, and what to try. Problems with captu
 stream on the PC are covered by Gazeora's
 [troubleshooting guide](https://github.com/Gazeora/Gazeora/blob/master/docs/troubleshooting.md).
 
-When reporting a problem, include the app version (under **About** on the home screen), your
-phone model and Android version, the protocol and the codec.
+To report a problem, tap **Report a problem** under **About** on the home screen. It opens a
+new bug report on GitHub in your browser, with the app version, phone model, Android version and
+ABI already filled in. Add the protocol and the codec. Nothing is sent until you submit the
+issue yourself. Without a browser, the app shows *No browser found to open GitHub*.
 
 ## Finding the PC
 

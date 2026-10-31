@@ -12,4 +12,6 @@ public interface ConnectEventHandler {
     void openPlayer(@NonNull StreamTarget target);
 
     void requestNetworkPermission();
+
+    void openWebPage(@NonNull String url);
 }

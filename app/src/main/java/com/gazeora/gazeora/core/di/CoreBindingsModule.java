@@ -4,7 +4,9 @@
 package com.gazeora.gazeora.core.di;
 
 import com.gazeora.gazeora.core.device.data.BuildDeviceInfo;
+import com.gazeora.gazeora.core.device.data.BuildSystemDescription;
 import com.gazeora.gazeora.core.device.domain.DeviceInfo;
+import com.gazeora.gazeora.core.device.domain.SystemDescription;
 import com.gazeora.gazeora.core.discovery.data.remote.DiscoverySource;
 import com.gazeora.gazeora.core.discovery.data.remote.NativeDiscovery;
 import com.gazeora.gazeora.core.discovery.data.repository.DiscoveryRepositoryImpl;
@@ -31,6 +33,9 @@ import dagger.hilt.components.SingletonComponent;
 public interface CoreBindingsModule {
     @Binds
     DeviceInfo bindDeviceInfo(BuildDeviceInfo impl);
+
+    @Binds
+    SystemDescription bindSystemDescription(BuildSystemDescription impl);
 
     @Binds
     LocalNetworkAccess bindLocalNetworkAccess(PermissionLocalNetworkAccess impl);
