@@ -25,13 +25,15 @@ Found a security problem? Don't open an issue:
 
 ## Setting up
 
-1. Open the project in a recent Android Studio, and install what the [README](README.md#requirements)
-   lists from its SDK manager: Android SDK 37, the NDK and CMake.
-2. Build and run it as the README describes (`./gradlew assembleDebug`, `./gradlew installDebug`),
-   with Gazeora running on a PC on the same network to stream from.
-3. Run the tests: `./gradlew testDebugUnitTest` for the Java unit tests, and the native
-   protocol tests from `app/src/test/cpp` with any desktop C++17 compiler (see
-   [Tests](README.md#tests)).
+1. Open the project in a recent Android Studio, and install what
+   [Development](docs/development.md#prerequisites) lists from its SDK manager: Android SDK 37,
+   the NDK and CMake.
+2. Build and run it as [Development](docs/development.md#building) describes
+   (`./gradlew assembleDebug`, `./gradlew installDebug`), with Gazeora running on a PC on the
+   same network to stream from.
+3. Run the tests: `./gradlew testDebugUnitTest` for the Java unit tests, and the native host
+   tests from `app/src/test/cpp` with any desktop C++17 compiler (see
+   [Tests](docs/development.md#tests)).
 
 ## How the code is written
 
@@ -60,15 +62,17 @@ Match the code around your change. When in doubt, look at how a similar part alr
 2. Write commits in [Conventional Commits](https://www.conventionalcommits.org) form, one line
    each, lowercase, imperative, no period, at most 72 characters, with no body:
 
-   ```
+   ```text
    feat: add profile screen with viewmodel
    fix: reconnect the stream after wi-fi drops
    ```
 
    Types: `feat`, `fix`, `perf`, `refactor`, `docs`, `test`, `chore`, `style`, `build`. Make
    small commits, one logical change each.
-3. Add tests for new logic in the domain and data layers, and update the README when users or
-   contributors will notice the change.
+3. Add tests for new logic in the domain and data layers, and update the README or the guides
+   in `docs/` when users or contributors will notice the change, following
+   [DOCUMENTATION_RULES.md](DOCUMENTATION_RULES.md). Protocol changes also go in Gazeora's
+   canonical [stream format](https://github.com/Gazeora/Gazeora/blob/master/docs/stream-format.md).
 4. Check that `./gradlew assembleDebug` builds and the tests pass. CI runs both on every pull
    request.
 5. Open the pull request and fill in its template: what changed, and how you tested it (phone,
