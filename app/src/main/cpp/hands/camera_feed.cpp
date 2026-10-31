@@ -5,6 +5,7 @@
 
 #include <android/log.h>
 
+#include <algorithm>
 #include <chrono>
 
 #include "hands/view_geometry.h"
@@ -24,6 +25,16 @@ int64_t NowMs() {
     return std::chrono::duration_cast<std::chrono::milliseconds>(
                std::chrono::steady_clock::now().time_since_epoch())
         .count();
+}
+
+// The mean luma of the middle square of the picture, as wide as its shorter side.
+float WholeLuma(const YuvPlanes& yuv, const CameraView& view) {
+    const bool quarter = view.toSensor[0][0] == 0;  // upright, the sides swap
+    PictureSquare square;
+    square.x = (quarter ? yuv.height : yuv.width) / 2.0f;
+    square.y = (quarter ? yuv.width : yuv.height) / 2.0f;
+    square.size = float(std::min(yuv.width, yuv.height));
+    return camera_frame::MeanLuma(yuv, view.toSensor, square);
 }
 
 }  // namespace
@@ -53,6 +64,7 @@ void CameraFeed::Open() {
         return;
     }
     m_state = State::Opening;
+    m_brightness = -1;
     m_opener = std::thread([this] { OpenNow(); });
 }
 
@@ -120,6 +132,7 @@ void CameraFeed::OnImage(void* context, AImageReader* reader) {
             float across = 0, down = 0;
             camera_geometry::UprightTangents(view, across, down);
             SceneLight light = light_estimate::Estimate(self->m_frame, across, down);
+            self->m_brightness = WholeLuma(yuv, view);
             std::lock_guard<std::mutex> lightLock(self->m_lightMutex);
             self->m_light = light;
         }

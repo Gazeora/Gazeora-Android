@@ -48,7 +48,9 @@ The PC side is the separate **Gazeora** project. This app is only the viewer.
   the tracker mixes up. Other people's hands in view are left out (a hand becomes yours only
   when it's within arm's reach and its arm comes from out of view, below or to the side), and
   one hand is never taken for two. The camera's picture never shows. Games show without any
-  of this.
+  of this. In the dark, where it can't find hands anyway, the camera goes off after 3 seconds
+  to save power, and comes on for a moment every 10 seconds to see whether the light is back.
+  How it stands goes to the PC, for its stream overlay.
 - **Steady in the viewer.** While the picture is for a VR viewer, the screen stays in the
   landscape it was in, so tilting the head doesn't turn it over.
 - **Manual connection.** You can type a `host[:port]` instead. The app remembers the last one.

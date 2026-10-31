@@ -44,6 +44,12 @@ void SortFarFirst(const std::vector<HandVertex>& corners, const std::vector<uint
               [&](const Triangle& a, const Triangle& b) { return depth(a) > depth(b); });
 }
 
+int64_t NowMs() {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(
+               std::chrono::steady_clock::now().time_since_epoch())
+        .count();
+}
+
 double NowSeconds() {
     return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch())
         .count();
@@ -65,6 +71,7 @@ HandRenderer::HandRenderer(HandsOptions options)
       m_camera([this](const YuvPlanes& yuv, const CameraView& view, int64_t timestampNs) {
           m_tracker.Track(yuv, view, timestampNs);
       }),
+      m_cameraStatus(std::move(options.cameraStatus)),
       m_making(std::async(std::launch::async, [] { return &RiggedHand::Get(); })) {}
 
 bool HandRenderer::Build(std::string& error) {
@@ -98,7 +105,8 @@ void HandRenderer::Enter() {
     }
     m_active = true;
     m_tracker.Start();
-    m_camera.Open();
+    m_gate.Start(NowMs());
+    PowerCamera();
 }
 
 void HandRenderer::Leave() {
@@ -106,7 +114,8 @@ void HandRenderer::Leave() {
         return;
     }
     m_active = false;
-    m_camera.Close();
+    m_gate.Stop();
+    PowerCamera();
     m_tracker.Stop();
     m_hands.Clear();
     m_shapes.Clear();
@@ -120,7 +129,7 @@ void HandRenderer::SetScreen(int quarterTurns, float dotsPerInch) {
 
 void HandRenderer::Draw(const ViewInfo& view, EGLint width, EGLint height) {
     m_cursor = {};
-    m_camera.Poll();
+    PowerCamera();
     if (!m_camera.Running() || width <= 0 || height <= 0) {
         return;
     }
@@ -196,6 +205,28 @@ void HandRenderer::Draw(const ViewInfo& view, EGLint width, EGLint height) {
     for (GLint attribute : attributes) {
         glDisableVertexAttribArray(attribute);
     }
+}
+
+void HandRenderer::PowerCamera() {
+    const int64_t now = NowMs();
+    CameraSighting seen;
+    seen.running = m_camera.Running();
+    seen.failed = m_camera.Failed();
+    seen.brightness = m_camera.Brightness();
+    m_gate.Update(seen, now);
+    if (!m_gate.WantsCamera()) {
+        if (!m_camera.Closed()) {
+            m_camera.Close();
+        }
+    } else if (m_camera.Closed()) {
+        m_camera.Open();
+    } else {
+        m_camera.Poll();
+    }
+    CameraReport report;
+    report.state = m_gate.Status();
+    report.brightness = uint8_t(std::lround(std::clamp(seen.brightness, 0.0f, 1.0f) * 255));
+    m_cameraStatus.Report(report, now);
 }
 
 void HandRenderer::Pose(const std::vector<HandSkeleton>& skeletons, double now) {

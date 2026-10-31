@@ -38,6 +38,7 @@ Player::~Player() {
     // drawing into it, and the window outlives both. The head outlives the decoder telling it
     // what the picture is.
     m_pointer.reset();
+    m_cameraStatus.reset();
     if (m_source) {
         m_source->Stop();
     }
@@ -64,6 +65,7 @@ bool Player::Start(const std::string& protocol, const std::string& host, uint16_
     }
     m_link = CreateMessageLink(protocol, host);
     m_pointer = CreatePointerSender(m_link);
+    m_cameraStatus = std::make_unique<CameraStatusSender>(m_link);
     m_head = std::make_unique<HeadTracker>(std::make_unique<RotationSensor>(),
                                            HeadPoseSender(m_link), m_quarterTurns);
     m_source->Start();
@@ -72,12 +74,19 @@ bool Player::Start(const std::string& protocol, const std::string& host, uint16_
 
 HandsOptions Player::PointingHere(HandsOptions hands) {
     hands.pointer = [this](const PointerEvent& event) { SendPointer(event); };
+    hands.cameraStatus = [this](const CameraReport& report) { SendCameraStatus(report); };
     return hands;
 }
 
 void Player::SendPointer(const PointerEvent& event) {
     if (m_pointer) {
         m_pointer->Send(event);
+    }
+}
+
+void Player::SendCameraStatus(const CameraReport& report) {
+    if (m_cameraStatus) {
+        m_cameraStatus->Send(report);
     }
 }
 

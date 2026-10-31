@@ -10,6 +10,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # The protocols, without Android: the host tests (app/src/test/cpp) build these too.
 add_library(gazeora_protocols STATIC
     protocols/annex_b.cpp
+    protocols/camera_status_message.cpp
     protocols/discovery_reply.cpp
     protocols/frame_assembler.cpp
     protocols/gzf.cpp
@@ -26,6 +27,8 @@ target_compile_options(gazeora_protocols PRIVATE -Wall -Wextra)
 # The hands' geometry and camera pictures, also without Android, for the host tests.
 add_library(gazeora_hands_math STATIC
     hands/camera_frame.cpp
+    hands/camera_light_gate.cpp
+    hands/camera_status_reporter.cpp
     hands/hand_detection.cpp
     hands/hand_follower.cpp
     hands/hand_geometry.cpp
@@ -77,6 +80,7 @@ add_library(gazeora_client SHARED
     gl/image_releaser.cpp
     hands/camera_feed.cpp
     hands/camera_setup.cpp
+    hands/camera_status_sender.cpp
     hands/hand_overlay.cpp
     hands/hand_models.cpp
     hands/hand_renderer.cpp

@@ -23,6 +23,7 @@ FetchContent_MakeAvailable(googletest)
 set(CLIENT ${CMAKE_CURRENT_SOURCE_DIR}/../../main/cpp)
 add_library(gazeora_protocols STATIC
     ${CLIENT}/protocols/annex_b.cpp
+    ${CLIENT}/protocols/camera_status_message.cpp
     ${CLIENT}/protocols/discovery_reply.cpp
     ${CLIENT}/protocols/frame_assembler.cpp
     ${CLIENT}/protocols/gzf.cpp
@@ -37,6 +38,8 @@ target_include_directories(gazeora_protocols PUBLIC ${CLIENT})
 
 add_library(gazeora_hands_math STATIC
     ${CLIENT}/hands/camera_frame.cpp
+    ${CLIENT}/hands/camera_light_gate.cpp
+    ${CLIENT}/hands/camera_status_reporter.cpp
     ${CLIENT}/hands/hand_detection.cpp
     ${CLIENT}/hands/hand_follower.cpp
     ${CLIENT}/hands/hand_geometry.cpp
