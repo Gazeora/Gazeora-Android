@@ -1361,7 +1361,6 @@ TEST(HandFollowerTest, FollowsAHandSeenTwiceOnce) {
     EXPECT_EQ(follower.Hands(0.2).size(), 2u);
 }
 
-
 class CameraLightGateTest : public ::testing::Test {
 protected:
     // The camera as the gate wants it, its pictures `brightness` bright, for `ms`.
