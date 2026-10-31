@@ -2,7 +2,8 @@
 
 Gazeora's Android viewer. It plays a PC's screen stream full screen on a phone, over Wi-Fi or a
 USB cable. The phone can show the picture flat or for a VR viewer. While the picture is flat,
-touches on it drive the PC's mouse; in a VR viewer, over Gazeora's own window, your hand does.
+touches on it drive the PC's mouse; in a VR viewer, over Gazeora's own window, your hand does,
+and in a game your head turns the camera.
 
 The PC side is the separate **Gazeora** project. This app is only the viewer.
 
@@ -29,6 +30,11 @@ The PC side is the separate **Gazeora** project. This app is only the viewer.
   still holds it perfectly still. The hand already pointing keeps pointing; otherwise your
   right hand points, or your left without it. It needs a Gazeora on the PC that takes pointer
   input in VR.
+- **Head tracking.** In a VR viewer, the phone's rotation sensor (the game rotation vector:
+  gyroscope and accelerometer, no compass) is read 200 times a second, and where your head points
+  goes to the PC, on the USB cable or over UDP port 8557 like touches. Gazeora turns the camera of
+  the game in front with it, captured or not. The sensor is off while the picture is flat. It needs a Gazeora on
+  the PC that takes head tracking.
 - **Hand tracking on the phone.** The back camera looks for your hands with MediaPipe's hand
   landmarker models, run with LiteRT straight on the camera's pictures, each on the phone's
   GPU or CPU, whichever runs it faster there. As a headset does, it searches the whole picture

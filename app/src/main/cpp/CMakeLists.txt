@@ -13,6 +13,7 @@ add_library(gazeora_protocols STATIC
     protocols/discovery_reply.cpp
     protocols/frame_assembler.cpp
     protocols/gzf.cpp
+    protocols/head_pose_message.cpp
     protocols/pointer_message.cpp
     protocols/rtp_depacketizer.cpp
     protocols/rtsp_message.cpp
@@ -37,6 +38,13 @@ add_library(gazeora_hands_math STATIC
     hands/view_geometry.cpp)
 target_include_directories(gazeora_hands_math PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_compile_options(gazeora_hands_math PRIVATE -Wall -Wextra)
+
+# The head's orientation math, also without Android, for the host tests.
+add_library(gazeora_head_math STATIC
+    head/head_orientation.cpp
+    head/quaternion.cpp)
+target_include_directories(gazeora_head_math PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_compile_options(gazeora_head_math PRIVATE -Wall -Wextra)
 
 # The shaders (shaders/*.vert, *.frag), as C++ strings in generated headers: shaders/<file>.h.
 set(GENERATED_DIR ${CMAKE_CURRENT_BINARY_DIR}/generated)
@@ -73,13 +81,17 @@ add_library(gazeora_client SHARED
     hands/hand_models.cpp
     hands/hand_renderer.cpp
     hands/hand_tracker.cpp
+    head/head_pose_sender.cpp
+    head/head_tracker.cpp
+    head/rotation_sensor.cpp
     jni.cpp
+    links/message_link_factory.cpp
+    links/udp_message_link.cpp
+    links/usb_message_link.cpp
     net.cpp
     player.cpp
-    pointer/pointer_sender_factory.cpp
+    pointer/link_pointer_sender.cpp
     pointer/queued_pointer_sender.cpp
-    pointer/udp_pointer_sender.cpp
-    pointer/usb_pointer_sender.cpp
     shaders/shader_program.cpp
     video_decoder.cpp
     video_renderer.cpp
@@ -89,5 +101,5 @@ add_library(gazeora_client SHARED
     sources/usb_link.cpp)
 target_include_directories(gazeora_client PRIVATE ${GENERATED_DIR})
 target_compile_options(gazeora_client PRIVATE -Wall -Wextra)
-target_link_libraries(gazeora_client PRIVATE gazeora_protocols gazeora_hands_math litert
+target_link_libraries(gazeora_client PRIVATE gazeora_protocols gazeora_hands_math gazeora_head_math litert
     litert_gpu mediandk camera2ndk android nativewindow EGL GLESv2 log)
