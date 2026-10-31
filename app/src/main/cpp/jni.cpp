@@ -1,15 +1,15 @@
 // The Java side's way in: NativePlayer.java, NativeDiscovery.java and NativeUsbLink.java.
 
-#include <android/bitmap.h>
+#include <android/asset_manager_jni.h>
 #include <android/native_window_jni.h>
 #include <jni.h>
 
-#include <cstring>
 #include <memory>
 #include <string>
 #include <vector>
 
 #include "discovery.h"
+#include "hands/hand_models.h"
 #include "player.h"
 #include "protocols/utf16.h"
 #include "sources/usb_link.h"
@@ -66,7 +66,6 @@ public:
         m_onVideoSize = env->GetMethodID(type, "onNativeVideoSize", "(II)V");
         m_onFirstFrame = env->GetMethodID(type, "onNativeFirstFrame", "()V");
         m_onPicture = env->GetMethodID(type, "onNativePicture", "(ZII)V");
-        m_onPanoramaWanted = env->GetMethodID(type, "onNativePanoramaWanted", "()V");
         env->DeleteLocalRef(type);
     }
     ~JavaPlayerListener() override { Env()->DeleteGlobalRef(m_player); }
@@ -99,19 +98,12 @@ public:
         ClearException(env);
     }
 
-    void OnPanoramaWanted() override {
-        JNIEnv* env = Env();
-        env->CallVoidMethod(m_player, m_onPanoramaWanted);
-        ClearException(env);
-    }
-
 private:
     jobject m_player;
     jmethodID m_onStatus;
     jmethodID m_onVideoSize;
     jmethodID m_onFirstFrame;
     jmethodID m_onPicture;
-    jmethodID m_onPanoramaWanted;
 };
 
 // NativePlayer's pointer ids are the wire's (protocols/pointer_message.h).
@@ -125,29 +117,9 @@ bool ToPointerEvent(jint action, jint button, PointerEvent& event) {
     return true;
 }
 
-// An RGBA_8888 bitmap's pixels, rows packed tightly; empty if it's another format.
-Panorama::Pixels CopyPixels(JNIEnv* env, jobject bitmap) {
-    Panorama::Pixels pixels;
-    AndroidBitmapInfo info = {};
-    void* data = nullptr;
-    if (AndroidBitmap_getInfo(env, bitmap, &info) != ANDROID_BITMAP_RESULT_SUCCESS ||
-        info.format != ANDROID_BITMAP_FORMAT_RGBA_8888 ||
-        AndroidBitmap_lockPixels(env, bitmap, &data) != ANDROID_BITMAP_RESULT_SUCCESS) {
-        return pixels;
-    }
-    const size_t row = size_t(info.width) * 4;
-    pixels.rgba.resize(row * info.height);
-    for (uint32_t y = 0; y < info.height; ++y) {
-        std::memcpy(pixels.rgba.data() + y * row, static_cast<uint8_t*>(data) + y * info.stride,
-                    row);
-    }
-    AndroidBitmap_unlockPixels(env, bitmap);
-    pixels.width = int32_t(info.width);
-    pixels.height = int32_t(info.height);
-    return pixels;
-}
 
 struct PlayerHandle {
+    jobject assets = nullptr;  // the hand models', held while the player may read them
     std::unique_ptr<JavaPlayerListener> listener;
     std::unique_ptr<Player> player;  // goes first: its threads call the listener
 };
@@ -173,7 +145,7 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void*) {
 JNIEXPORT jlong JNICALL Java_com_gazeora_gazeora_feature_player_data_remote_NativePlayer_nativeStart(
     JNIEnv* env, jobject self, jobject surface, jstring protocol, jstring host, jint port,
     jstring path, jstring avcDecoder, jstring hevcDecoder, jboolean avcLowLatency,
-    jboolean hevcLowLatency) {
+    jboolean hevcLowLatency, jobject assets, jstring cacheDir, jboolean handsDebug) {
     ANativeWindow* window = ANativeWindow_fromSurface(env, surface);
     if (!window) {
         return 0;
@@ -185,11 +157,18 @@ JNIEXPORT jlong JNICALL Java_com_gazeora_gazeora_feature_player_data_remote_Nati
     decoders.hevcLowLatency = hevcLowLatency;
 
     auto* handle = new PlayerHandle();
+    handle->assets = env->NewGlobalRef(assets);
+    HandsOptions hands;
+    hands.models.assets = AAssetManager_fromJava(env, handle->assets);
+    hands.models.cacheDir = String(env, cacheDir);
+    hands.debug = handsDebug;
     handle->listener = std::make_unique<JavaPlayerListener>(env, self);
-    handle->player = std::make_unique<Player>(window, std::move(decoders), *handle->listener);
+    handle->player = std::make_unique<Player>(window, std::move(decoders), std::move(hands),
+                                              *handle->listener);
     if (!handle->player->Start(String(env, protocol), String(env, host), uint16_t(port),
                                String(env, path))) {
         handle->player.reset();
+        env->DeleteGlobalRef(handle->assets);
         delete handle;
         return 0;
     }
@@ -197,10 +176,11 @@ JNIEXPORT jlong JNICALL Java_com_gazeora_gazeora_feature_player_data_remote_Nati
 }
 
 JNIEXPORT void JNICALL Java_com_gazeora_gazeora_feature_player_data_remote_NativePlayer_nativeRelease(
-    JNIEnv*, jclass, jlong pointer) {
+    JNIEnv* env, jclass, jlong pointer) {
     auto* handle = reinterpret_cast<PlayerHandle*>(pointer);
     if (handle) {
         handle->player.reset();
+        env->DeleteGlobalRef(handle->assets);
         delete handle;
     }
 }
@@ -228,12 +208,18 @@ JNIEXPORT void JNICALL Java_com_gazeora_gazeora_feature_player_data_remote_Nativ
     }
 }
 
-JNIEXPORT void JNICALL Java_com_gazeora_gazeora_feature_player_data_remote_NativePlayer_nativeSetPanorama(
-    JNIEnv* env, jclass, jlong pointer, jobject bitmap) {
-    auto* handle = reinterpret_cast<PlayerHandle*>(pointer);
-    if (handle && bitmap) {
-        handle->player->SetPanorama(CopyPixels(env, bitmap));
-    }
+JNIEXPORT void JNICALL Java_com_gazeora_gazeora_core_hands_HandModels_nativePreload(
+    JNIEnv* env, jclass, jobject assets, jstring cacheDir) {
+    HandModelFiles files;
+    // The app's assets, held for as long as the process runs: the models read from them.
+    files.assets = AAssetManager_fromJava(env, env->NewGlobalRef(assets));
+    files.cacheDir = String(env, cacheDir);
+    HandModels::Preload(std::move(files));
+}
+
+JNIEXPORT jboolean JNICALL Java_com_gazeora_gazeora_core_hands_HandModels_nativeIsReady(JNIEnv*,
+                                                                                    jclass) {
+    return HandModels::Ready();
 }
 
 JNIEXPORT jboolean JNICALL Java_com_gazeora_gazeora_core_usb_data_NativeUsbLink_nativeIsOpen(

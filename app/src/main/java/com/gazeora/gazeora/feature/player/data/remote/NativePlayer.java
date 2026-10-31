@@ -1,6 +1,6 @@
 package com.gazeora.gazeora.feature.player.data.remote;
 
-import android.graphics.Bitmap;
+import android.content.res.AssetManager;
 import android.os.Handler;
 import android.view.Surface;
 
@@ -12,7 +12,6 @@ import com.gazeora.gazeora.core.nativebridge.NativeLibrary;
 import com.gazeora.gazeora.core.stream.domain.model.StreamTarget;
 import com.gazeora.gazeora.feature.player.data.decoder.DecoderChoice;
 import com.gazeora.gazeora.feature.player.data.mapper.PlayerStatusMapper;
-import com.gazeora.gazeora.feature.player.data.room.PanoramaSource;
 import com.gazeora.gazeora.feature.player.domain.model.PlayerStatus;
 import com.gazeora.gazeora.feature.player.domain.model.PointerCommand;
 import com.gazeora.gazeora.feature.player.domain.model.ScreenGeometry;
@@ -35,22 +34,27 @@ final class NativePlayer implements PlaybackSession {
     private final Handler main;
     private final PlaybackListener listener;
     private final PlayerStatusMapper statuses;
-    private final PanoramaSource panoramas;
     private long handle = NO_HANDLE;
 
     NativePlayer(@NonNull Handler main, @NonNull PlaybackListener listener,
-            @NonNull PlayerStatusMapper statuses, @NonNull PanoramaSource panoramas) {
+            @NonNull PlayerStatusMapper statuses) {
         this.main = main;
         this.listener = listener;
         this.statuses = statuses;
-        this.panoramas = panoramas;
     }
 
+    /**
+     * The native side tracks the viewer's hands in a VR viewer itself, with the models in
+     * {@code assets}, keeping what the GPU makes of them in {@code cacheDir}. With
+     * {@code handsDebug}, it shows the hands on a flat picture too.
+     */
     void start(@NonNull Surface surface, @NonNull StreamTarget target,
-            @NonNull DecoderChoice decoders) {
+            @NonNull DecoderChoice decoders, @NonNull AssetManager assets,
+            @NonNull String cacheDir, boolean handsDebug) {
         handle = nativeStart(surface, target.getProtocol().getId(), target.getHost(),
                 target.getPort(), target.getPath(), decoders.getAvc(), decoders.getHevc(),
-                decoders.isAvcLowLatency(), decoders.isHevcLowLatency());
+                decoders.isAvcLowLatency(), decoders.isHevcLowLatency(), assets, cacheDir,
+                handsDebug);
         if (handle == NO_HANDLE) {
             main.post(() -> listener.onStatus(PlayerStatus.FAILED, null));
         }
@@ -66,7 +70,7 @@ final class NativePlayer implements PlaybackSession {
     @Override
     public void release() {
         if (handle != NO_HANDLE) {
-            nativeRelease(handle);
+            nativeRelease(handle);  // the camera and hand tracking stop with it
             handle = NO_HANDLE;
         }
         main.removeCallbacksAndMessages(null);
@@ -104,16 +108,6 @@ final class NativePlayer implements PlaybackSession {
         whilePlaying(() -> listener.onPicture(picture));
     }
 
-    @Keep
-    private void onNativePanoramaWanted() {
-        panoramas.load(scene -> main.post(() -> {
-            if (handle != NO_HANDLE) {
-                nativeSetPanorama(handle, scene);  // copied: the bitmap can go
-            }
-            scene.recycle();
-        }));
-    }
-
     private void whilePlaying(@NonNull Runnable action) {
         main.post(() -> {
             if (handle != NO_HANDLE) {
@@ -124,7 +118,8 @@ final class NativePlayer implements PlaybackSession {
 
     private native long nativeStart(@NonNull Surface surface, @NonNull String protocol,
             @Nullable String host, int port, @Nullable String path, @Nullable String avcDecoder,
-            @Nullable String hevcDecoder, boolean avcLowLatency, boolean hevcLowLatency);
+            @Nullable String hevcDecoder, boolean avcLowLatency, boolean hevcLowLatency,
+            @NonNull AssetManager assets, @NonNull String cacheDir, boolean handsDebug);
 
     private static native void nativeRelease(long handle);
 
@@ -132,6 +127,4 @@ final class NativePlayer implements PlaybackSession {
             float y, int wheelVertical, int wheelHorizontal);
 
     private static native void nativeSetScreen(long handle, int quarterTurns, float dotsPerInch);
-
-    private static native void nativeSetPanorama(long handle, @NonNull Bitmap scene);
 }

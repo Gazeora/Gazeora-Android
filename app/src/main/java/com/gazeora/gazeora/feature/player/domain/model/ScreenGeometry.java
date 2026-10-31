@@ -6,7 +6,7 @@ import androidx.annotation.Nullable;
 import java.util.Objects;
 
 /**
- * How the phone's screen sits, for the room view: how far the display is turned from the
+ * How the phone's screen sits, for the hands over Gazeora's window: how far the display is turned from the
  * phone's natural orientation, and how dense its pixels are, which says how big the screen is.
  */
 public final class ScreenGeometry {

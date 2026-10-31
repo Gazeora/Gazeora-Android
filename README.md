@@ -2,7 +2,7 @@
 
 Gazeora's Android viewer. It plays a PC's screen stream full screen on a phone, over Wi-Fi or a
 USB cable. The phone can show the picture flat or for a VR viewer. While the picture is flat,
-touches on it drive the PC's mouse.
+touches on it drive the PC's mouse; in a VR viewer, over Gazeora's own window, your hand does.
 
 The PC side is the separate **Gazeora** project. This app is only the viewer.
 
@@ -19,11 +19,30 @@ The PC side is the separate **Gazeora** project. This app is only the viewer.
   moving a finger scrolls. No button is ever left held down on the PC.
 - **Hardware decoding.** H.264 and H.265 are decoded with `MediaCodec`, using low-latency decoders
   where the device has them.
-- **Gazeora's window in the room.** In a VR viewer, while no game runs, the PC's Gazeora window
-  floats in the air about 2 m ahead, over the back camera's picture (stretched to fill the
-  view), and stays put as the head turns (the rotation sensor). Without the camera (permission
-  refused, in use, or covered), it floats in a 360° lake scene instead. Games still fill both
-  eyes.
+- **Your hand as a pointer.** In a VR viewer, while Gazeora's own window shows (no game runs),
+  your hand points at the window, as VR headsets let a hand point at a screen out of reach. The
+  middle of your palm moves a ring cursor, and the middle of the camera's view, well inside its
+  edges, covers the whole window, so its corners are in easy reach. A pinch clicks where the
+  cursor was as it began, and a pinch that moves scrolls, as a finger does on the touch screen;
+  no button is ever left held down. The ring closes in as a pinch nears and fills once it
+  pinches. The cursor is steadied against tremor and the tracker's wobble, and a hand held
+  still holds it perfectly still. The hand already pointing keeps pointing; otherwise your
+  right hand points, or your left without it. It needs a Gazeora on the PC that takes pointer
+  input in VR.
+- **Hand tracking on the phone.** The back camera looks for your hands with MediaPipe's hand
+  landmarker models, run with LiteRT straight on the camera's pictures, each on the phone's
+  GPU or CPU, whichever runs it faster there. As a headset does, it searches the whole picture
+  only to find hands, then follows each in a small square around it. A dim picture is
+  brightened first, and the camera may slow to 15 frames a second to let in more light, so it
+  still finds hands in a dim room. The models load as the app starts, behind the splash: on
+  the CPU first, so hands are tracked at once, then on the GPU, which the first time after an
+  install takes about 20 seconds in the background; tracking changes over when it's ready.
+  Whether a hand is your right or left is settled when it's found, by where its arm comes in
+  from, and kept: from behind, a right hand looks much like a left one from the front, which
+  the tracker mixes up. Other people's hands in view are left out (a hand becomes yours only
+  when it's within arm's reach and its arm comes from out of view, below or to the side), and
+  one hand is never taken for two. The camera's picture never shows. Games show without any
+  of this.
 - **Steady in the viewer.** While the picture is for a VR viewer, the screen stays in the
   landscape it was in, so tilting the head doesn't turn it over.
 - **Manual connection.** You can type a `host[:port]` instead. The app remembers the last one.
@@ -41,8 +60,8 @@ The PC side is the separate **Gazeora** project. This app is only the viewer.
 On Android 17 and later the app asks for the **local network** permission. Without it, Android
 silently drops traffic to the PC. Loopback addresses (`127.*`, for `adb reverse`) don't need it.
 
-The player asks for the **camera** as it opens, before the phone goes into the viewer, to show
-the room behind Gazeora's window. It's optional.
+The player asks for the **camera** as it opens, before the phone goes into the viewer, so your
+hand can point at Gazeora's window. It's optional.
 
 ## Build and run
 
@@ -69,23 +88,23 @@ Studio's bundled JDK (for example `C:\Program Files\Android\Android Studio\jbr`)
 ./gradlew testDebugUnitTest      # Java unit tests (app/src/test/java)
 ```
 
-The native protocol code and the room view's geometry have host-side GoogleTest tests. They
+The native protocol code and the hands' geometry have host-side GoogleTest tests. They
 build with any desktop C++17 compiler:
 
 ```bash
 cmake -S app/src/test/cpp -B build/host-tests
 cmake --build build/host-tests
 build/host-tests/protocols_test
-build/host-tests/room_test
+build/host-tests/hands_test
 ```
 
-The 360° scene (`app/src/main/assets/room/panorama.jpg`) is rendered by a script, which can be
-tweaked and run again:
+The build fetches MediaPipe's hand landmarker models from Google's storage and checks them
+against their known SHA-256 (`fetchHandModel` in `app/build.gradle.kts`), so it needs the
+network once. The native hand tracker uses LiteRT's C API, whose headers and libraries the build
+takes out of LiteRT's AARs (`extractLiteRt`).
 
-```bash
-pip install -r tools/panorama/requirements.txt
-python tools/panorama/render_panorama.py
-```
+Debuggable builds also show the hand pointer over a flat picture of Gazeora's window, so it can
+be tried without a viewer. Release builds show it only in a VR viewer.
 
 ## Versions
 
@@ -95,7 +114,7 @@ The version lives in the `VERSION` file at the root, as `MAJOR.MINOR.PATCH` (`1.
 `versionCode` from it, which only grows: a release candidate counts just below its release
 (`1.1.0-rc.1` is 1010001, `1.1.0` is 1010099). Minor and patch go up to 99, rc up to 98.
 
-CI (`.github/workflows/ci.yml`) runs the Java unit tests and the native protocol and room
+CI (`.github/workflows/ci.yml`) runs the Java unit tests and the native protocol and hand
 geometry tests and builds the debug APK on every pull request.
 
 Every Monday at 00:00 UTC (or by hand: **Actions → Weekly pre-release → Run workflow**),
@@ -134,11 +153,11 @@ straight onto the player's `Surface`.
 | --- | --- |
 | `protocols/` | Pure protocol code with no Android dependencies: RTSP, RTP, MPEG-TS, GZF framing, discovery replies, pointer messages |
 | `sources/` | Stream sources for each protocol, plus the shared USB link |
-| `pointer/` | Sends touches back to the PC: over UDP (port `8557`) for network streams, or over the USB link |
+| `pointer/` | Sends touches and the hand pointer's moves, clicks and scrolls back to the PC: over UDP (port `8557`) for network streams, or over the USB link |
 | `player.*`, `video_*` | Ties a source to the decoder and renderer |
-| `room/` | Gazeora's window floating in the room: head tracking, the back camera, the 360 scene, and the geometry (no Android in `head_pose.*`, `room_geometry.*`) |
+| `hands/` | The viewer's hands over Gazeora's window: the back camera (for the hand tracker and the room's light only); the models (`hand_models.*`, LiteRT, loaded as the app starts) and the hand tracker (`hand_tracker.*`); telling the viewer's hands from others' and following them; the hand pointer (`hand_pointer.*`); the skeleton they're fitted to, the hand model rigged to it (`hand_model_data.h`, generated by `tools/hand_model/convert.py`), drawn only while no hand points, and the shapes the hands make; and the geometry (no Android in `view_geometry.*`, `hand_detection.*`, `hand_tracking.*`, `hand_geometry.*`, `hand_follower.*`, `hand_pointer.*`, `hand_skeleton.*`, `rigged_hand.*`, `hand_shapes.*`, `light_estimate.*`, `camera_frame.*`) |
 | `gl/` | Decoder and camera buffers as textures, and handing them back once drawn |
-| `shaders/` | The GLSL: `video.frag` for the stream as it is or for a VR viewer, `room.frag` for the room |
+| `shaders/` | The GLSL: `video.frag` for the stream as it is or for a VR viewer, with the hand pointer's cursor; `hand.vert` and `hand.frag` for the rigged hands over it, with their outline |
 | `discovery.*` | Network search for PCs |
 | `jni.cpp` | The JNI entry points for the Java adapters |
 
@@ -150,6 +169,7 @@ app/src/main/java/com/gazeora/gazeora/
 │   ├── device/        # emulator detection
 │   ├── di/            # app-wide Hilt modules
 │   ├── discovery/     # finding PCs on the network (data + domain)
+│   ├── hands/         # loads the hand tracker's models as the app starts
 │   ├── nativebridge/  # loads the native library
 │   ├── network/       # local network permission
 │   ├── stream/        # StreamProtocol, StreamTarget
@@ -158,12 +178,26 @@ app/src/main/java/com/gazeora/gazeora/
 ├── feature/
 │   ├── connect/       # home screen: PC list and manual entry
 │   │   ├── data/  domain/  presentation/  di/
-│   └── player/        # full-screen player and touch pointer
+│   └── player/        # full-screen player, touch and hand pointer
 │       ├── data/  domain/  presentation/  di/
 └── GazeoraApplication.java
 ```
 
 Unit tests in `app/src/test/java` use the same package layout.
+
+### The hand model
+
+The rigged hands, drawn while no hand points, are the right hand of
+[VR Hand](https://sketchfab.com/3d-models/vr-hand-a647cce524254c9a96d4244c12811d7a) by
+RockDutyFree_models (CC BY 4.0), mirrored for the left. `hands/hand_model_data.h` is
+generated from its glTF: its skin in its rest pose and its bones mapped onto the hand
+skeleton's; not its texture, as the hands are drawn in one color of their own. The skeleton's
+measures (`hand_skeleton.h`) are the model's, so the skin fits its bones; the script prints
+them. To regenerate it (needs numpy):
+
+```sh
+python tools/hand_model/convert.py path/to/scene.gltf
+```
 
 ## Contributing
 
@@ -178,5 +212,5 @@ share must stay under the same license, with their source.
 [NOTICE](NOTICE) adds three terms, as the GPL's section 7 allows: modified versions keep the
 attribution "Gazeora by Nithin Aashik" where they show information about themselves, are marked
 as modified, and don't use the Gazeora name or logo as their own
-([TRADEMARKS.md](TRADEMARKS.md)). The libraries the app is built with are listed in
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+([TRADEMARKS.md](TRADEMARKS.md)). The libraries and the hand model the app is built with are
+listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

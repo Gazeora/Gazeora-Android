@@ -1,8 +1,8 @@
-# Host tests for the native client's protocol code (app/src/main/cpp/protocols) and the room
-# view's geometry (app/src/main/cpp/room), which have no Android in them. Build with any
+# Host tests for the native client's protocol code (app/src/main/cpp/protocols) and the hands'
+# geometry and camera pictures (app/src/main/cpp/hands), which have no Android in them. Build with any
 # desktop C++17 compiler:
 #   cmake -S app/src/test/cpp -B build/host-tests && cmake --build build/host-tests
-#   build/host-tests/protocols_test && build/host-tests/room_test
+#   build/host-tests/protocols_test && build/host-tests/hands_test
 # GoogleTest comes from GitHub, or from a local copy with -DFETCHCONTENT_SOURCE_DIR_GOOGLETEST=.
 cmake_minimum_required(VERSION 3.22)
 project(gazeora_client_tests CXX)
@@ -31,16 +31,25 @@ add_library(gazeora_protocols STATIC
     ${CLIENT}/protocols/view_info.cpp)
 target_include_directories(gazeora_protocols PUBLIC ${CLIENT})
 
-add_library(gazeora_room_math STATIC
-    ${CLIENT}/room/head_pose.cpp
-    ${CLIENT}/room/room_geometry.cpp)
-target_include_directories(gazeora_room_math PUBLIC ${CLIENT})
+add_library(gazeora_hands_math STATIC
+    ${CLIENT}/hands/camera_frame.cpp
+    ${CLIENT}/hands/hand_detection.cpp
+    ${CLIENT}/hands/hand_follower.cpp
+    ${CLIENT}/hands/hand_geometry.cpp
+    ${CLIENT}/hands/hand_pointer.cpp
+    ${CLIENT}/hands/hand_shapes.cpp
+    ${CLIENT}/hands/hand_skeleton.cpp
+    ${CLIENT}/hands/hand_tracking.cpp
+    ${CLIENT}/hands/light_estimate.cpp
+    ${CLIENT}/hands/rigged_hand.cpp
+    ${CLIENT}/hands/view_geometry.cpp)
+target_include_directories(gazeora_hands_math PUBLIC ${CLIENT})
 
 add_executable(protocols_test protocols_test.cpp)
 target_link_libraries(protocols_test PRIVATE gazeora_protocols GTest::gtest_main)
-add_executable(room_test room_test.cpp)
-target_link_libraries(room_test PRIVATE gazeora_room_math GTest::gtest_main)
+add_executable(hands_test hands_test.cpp)
+target_link_libraries(hands_test PRIVATE gazeora_hands_math GTest::gtest_main)
 if(MINGW)
     target_link_options(protocols_test PRIVATE -static)
-    target_link_options(room_test PRIVATE -static)
+    target_link_options(hands_test PRIVATE -static)
 endif()

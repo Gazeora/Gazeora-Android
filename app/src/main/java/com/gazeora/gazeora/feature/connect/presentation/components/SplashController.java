@@ -6,9 +6,15 @@ import androidx.annotation.NonNull;
 import androidx.core.splashscreen.SplashScreen;
 import androidx.core.splashscreen.SplashScreenViewProvider;
 
-/** Holds the splash a moment on a fresh launch, then fades it out. */
+import com.gazeora.gazeora.core.hands.HandModels;
+
+/**
+ * Holds the splash a moment on a fresh launch, and on while the hand tracker's models load,
+ * up to a limit (the first time, the GPU takes longer); then fades it out.
+ */
 public final class SplashController {
     private static final long HOLD_MS = 1200;
+    private static final long MOST_HOLD_MS = 4000;
     private static final long FADE_MS = 300;
     private static final float TRANSPARENT = 0f;
 
@@ -22,7 +28,11 @@ public final class SplashController {
     public void install(boolean hold) {
         if (hold) {
             long hideAt = SystemClock.uptimeMillis() + HOLD_MS;
-            splash.setKeepOnScreenCondition(() -> SystemClock.uptimeMillis() < hideAt);
+            long latestAt = SystemClock.uptimeMillis() + MOST_HOLD_MS;
+            splash.setKeepOnScreenCondition(() -> {
+                long now = SystemClock.uptimeMillis();
+                return now < hideAt || (!HandModels.isReady() && now < latestAt);
+            });
         }
         splash.setOnExitAnimationListener(this::fadeOut);
     }

@@ -21,7 +21,7 @@ import dagger.hilt.android.AndroidEntryPoint;
 
 /**
  * Plays the PC's stream full screen; frames are decoded straight onto the surface, and touches
- * on it go to the PC. In a VR viewer, Gazeora's own window floats over the camera's picture.
+ * on it go to the PC. In a VR viewer, drawn hands follow the viewer's own over Gazeora's window.
  */
 @AndroidEntryPoint
 public final class PlayerActivity extends AppCompatActivity {

@@ -10,9 +10,10 @@ import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 
 /**
- * Asks for the camera, which shows the room behind Gazeora's window in a VR viewer. Asked as
- * the player opens, before the phone goes into the viewer, where a dialog can't be answered.
- * Refused, the window floats in a 360 scene instead.
+ * Asks for the camera, which finds the viewer's hands for the drawn ones over Gazeora's window
+ * in a VR viewer; its picture never shows.
+ * Asked as the player opens, before the phone goes into the viewer, where a dialog can't be
+ * answered. Refused, the window shows without them.
  */
 public final class CameraPermissionRequester {
     private final ComponentActivity activity;
@@ -21,7 +22,7 @@ public final class CameraPermissionRequester {
     /** Create while the activity is being constructed: results need registering that early. */
     public CameraPermissionRequester(@NonNull ComponentActivity activity) {
         this.activity = activity;
-        // Either way, nothing to do here: the room view tries the camera again by itself.
+        // Either way, nothing to do here: the camera is tried again by itself.
         launcher = activity.registerForActivityResult(
                 new ActivityResultContracts.RequestPermission(), granted -> {
                 });
