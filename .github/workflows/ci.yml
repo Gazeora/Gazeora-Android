@@ -46,6 +46,9 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a  # v4
 
+      - name: License headers
+        run: python3 tools/license_headers.py
+
       - name: Java unit tests
         run: ./gradlew testDebugUnitTest
 

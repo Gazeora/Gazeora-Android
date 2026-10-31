@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Nithin Aashik
+// SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-Gazeora-Commercial
+
 // The PC's warp (frame_dump.cpp in Gazeora), per eye: each pixel measured from its lens center
 // in units of half the eye's height, pushed outwards by the distortion polynomial, then looked
 // up in the picture; red and blue a little smaller and larger against the lenses' color
