@@ -73,6 +73,10 @@ add_library(litert_gpu SHARED IMPORTED)
 set_target_properties(litert_gpu PROPERTIES
     IMPORTED_LOCATION ${LITERT_DIR}/jni/${ANDROID_ABI}/libtensorflowlite_gpu_jni.so)
 
+# Off leaves out the camera status the PC's stream overlay shows; Gradle sets it from
+# gazeora.streamOverlay, and CI builds without it.
+option(GAZEORA_STREAM_OVERLAY "Send the camera status for the PC's stream overlay" ON)
+
 add_library(gazeora_client SHARED
     discovery.cpp
     gl/egl_procs.cpp
@@ -104,6 +108,9 @@ add_library(gazeora_client SHARED
     sources/udp_source.cpp
     sources/usb_link.cpp)
 target_include_directories(gazeora_client PRIVATE ${GENERATED_DIR})
+# build_features.h
+target_compile_definitions(gazeora_client PRIVATE
+    GAZEORA_STREAM_OVERLAY=$<BOOL:${GAZEORA_STREAM_OVERLAY}>)
 target_compile_options(gazeora_client PRIVATE -Wall -Wextra)
 target_link_libraries(gazeora_client PRIVATE gazeora_protocols gazeora_hands_math gazeora_head_math litert
     litert_gpu mediandk camera2ndk android nativewindow EGL GLESv2 log)
