@@ -195,6 +195,9 @@ android {
             }
         }
     }
+    buildFeatures {
+        buildConfig = true  // the version on the home screen's About section
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
