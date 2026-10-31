@@ -209,3 +209,44 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 - [ ] Comments are minimal and easy to understand.
 - [ ] Project builds successfully (`./gradlew assembleDebug`) and tests pass.
 - [ ] Commit message is a single line with no co-author or attribution.
+
+---
+
+## 7. Documentation Rules (Required)
+
+The shared documentation standard for this repository is [`DOCUMENTATION_RULES.md`](./DOCUMENTATION_RULES.md). Read it before changing documentation and follow it for every task that creates, updates, or affects documented behavior.
+
+The Android-specific guidance at the end of this section supplements it; it does not replace the existing Kotlin/Java, MVVM, Clean Architecture, Hilt, or Git rules above.
+
+### Required workflow
+- Inspect the existing documentation and relevant source code before editing docs. Treat the implementation, build configuration, tests, and shipped assets as the source of truth.
+- Keep documentation accurate to the current repository state. Never invent features, commands, configuration keys, supported platforms, compatibility guarantees, performance claims, or roadmap commitments.
+- Update documentation in the same change whenever behavior, setup, configuration, interfaces, dependencies, architecture, or user-visible workflows change.
+- Prefer editing the existing relevant document over creating duplicates. Keep links relative where possible and verify that linked files and headings exist.
+- Use concise, direct language and runnable, repository-verified examples. Mark assumptions and limitations explicitly.
+- Do not remove or weaken existing coding, architecture, security, or Git rules to satisfy documentation work.
+
+### Before finishing
+- Follow the documentation review checklist in `DOCUMENTATION_RULES.md`.
+- Validate Markdown structure, links, code examples, and commands where practical.
+- Report exactly which documentation files changed and which checks were run. Do not claim a check passed unless it was actually run.
+
+
+### Android documentation responsibilities
+- Document only Android behavior that is present in this repository. Inspect Gradle files, manifest entries, source, resources, tests, and build variants before describing setup or behavior.
+- Keep the root README focused on what the Android companion does, prerequisites, verified setup/build steps, supported Android versions/devices only when confirmed by project configuration, and links to deeper docs.
+- Document permissions with their actual manifest declarations and runtime request behavior. Explain why each permission is needed, when it is requested, and what functionality is unavailable if it is denied. Never imply a permission is optional or mandatory without checking implementation.
+- For sensor and motion tracking documentation, identify the actual sensor types, coordinate conventions, units, sampling/rate configuration, filtering, calibration, lifecycle behavior, and fallback behavior from code. Do not assume a sensor is available on every device.
+- For communication with the desktop application, document the implemented transport, discovery/pairing flow, message format, versioning, connection states, reconnection behavior, security properties, and error handling. Do not claim encryption, authentication, or reliability guarantees unless implemented and verified.
+- Document Android lifecycle behavior where it affects tracking, background operation, foreground services, battery use, or connection continuity. Distinguish tested behavior from platform-dependent behavior.
+- Keep user-facing instructions aligned with the actual UI labels, navigation, permission prompts, and settings in the app. Store UI text in Android resources as required by the existing rules.
+- Document build/test commands from the actual Gradle wrapper and modules. Verify task names and required local configuration before publishing commands.
+- Do not document secrets, signing credentials, private endpoints, personal device identifiers, or sensitive debug output.
+
+### Android-specific documentation checks
+- [ ] Manifest permissions and documented permission behavior match.
+- [ ] Sensor names, units, axes, coordinate frames, and lifecycle claims match the implementation.
+- [ ] Desktop communication details match the actual protocol and code; unsupported guarantees are not stated.
+- [ ] UI instructions match current screens and resource strings.
+- [ ] Gradle commands and module names have been verified.
+- [ ] Android examples use the language and UI toolkit already used in the relevant module.
