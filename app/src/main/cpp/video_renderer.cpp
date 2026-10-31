@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cstring>
+#include <iterator>
 
 #include "shaders/video.frag.h"
 #include "shaders/video.vert.h"
@@ -13,15 +14,18 @@ namespace gazeora {
 
 namespace {
 
+// The hand pointer's cursor's radius, as a share of the picture's height.
+constexpr float kCursorRadius = 0.018f;
+
 constexpr char kTag[] = "GazeoraRenderer";
 // The decoder's pictures in flight: one it's drawing, one queued, one being shown, and one
-// held by the room view, which draws the shown one again every refresh.
+// held while the hands show, as the shown one is drawn again every refresh.
 constexpr int32_t kReaderImages = 5;
 // Buffers whose textures are kept; the decoder cycles through fewer.
 constexpr size_t kMaxTextures = 8;
 // How often to look for a change in the window's size while no pictures come.
 constexpr auto kIdleCheck = std::chrono::milliseconds(100);
-// In the room, frames go out as fast as the display takes them (eglSwapBuffers waits).
+// With the hands, frames go out as fast as the display takes them (eglSwapBuffers waits).
 constexpr auto kNoWait = std::chrono::milliseconds(0);
 // View infos waiting for their picture; more means the pictures went elsewhere.
 constexpr size_t kMaxViews = 64;
@@ -30,8 +34,10 @@ const GLfloat kQuad[] = {-1, -1, 1, -1, -1, 1, 1, 1};
 
 }  // namespace
 
-VideoRenderer::VideoRenderer(ANativeWindow* window, std::function<void()> panoramaWanted)
-    : m_window(window), m_panoramaWanted(std::move(panoramaWanted)) {}
+VideoRenderer::VideoRenderer(ANativeWindow* window, HandsOptions hands)
+    : m_window(window), m_handsDebug(hands.debug) {
+    m_handsOptions = std::move(hands);
+}
 
 VideoRenderer::~VideoRenderer() {
     if (m_thread.joinable()) {
@@ -81,11 +87,6 @@ void VideoRenderer::SetScreen(int quarterTurns, float dotsPerInch) {
     m_dotsPerInch = dotsPerInch;
 }
 
-void VideoRenderer::SetPanorama(Panorama::Pixels pixels) {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    m_panorama = std::move(pixels);
-}
-
 ViewInfo VideoRenderer::ViewFor(int64_t presentationUs) {
     std::lock_guard<std::mutex> lock(m_mutex);
     auto it = m_views.find(presentationUs);
@@ -126,8 +127,8 @@ void VideoRenderer::Run() {
         if (image) {
             DrawLatest();
         }
-        if (InRoom()) {
-            DrawRoom();
+        if (WithHands()) {
+            DrawWithHands();
         } else if (!image) {
             RedrawIfResized();  // turned or resized: the last picture again, laid out anew
         }
@@ -138,11 +139,10 @@ void VideoRenderer::Run() {
 bool VideoRenderer::Wait(bool& image) {
     int quarterTurns;
     float dotsPerInch;
-    Panorama::Pixels panorama;
     {
         std::unique_lock<std::mutex> lock(m_mutex);
-        bool room = InRoom() && !m_swapFailed;
-        m_wake.wait_for(lock, room ? kNoWait : kIdleCheck,
+        bool everyRefresh = WithHands() && !m_swapFailed;
+        m_wake.wait_for(lock, everyRefresh ? kNoWait : kIdleCheck,
                         [this] { return m_stopping || m_imageReady; });
         if (m_stopping) {
             return false;
@@ -151,16 +151,9 @@ bool VideoRenderer::Wait(bool& image) {
         m_imageReady = false;
         quarterTurns = m_quarterTurns;
         dotsPerInch = m_dotsPerInch;
-        std::swap(panorama, m_panorama);
     }
-    if (m_room) {
-        m_room->SetScreen(quarterTurns, dotsPerInch);
-        if (!panorama.rgba.empty()) {
-            m_room->SetPanorama(std::move(panorama));
-        }
-        if (m_room->TakePanoramaRequest() && m_panoramaWanted) {
-            m_panoramaWanted();
-        }
+    if (m_hands) {
+        m_hands->SetScreen(quarterTurns, dotsPerInch);
     }
     return true;
 }
@@ -171,17 +164,23 @@ bool VideoRenderer::SetUpEgl(std::string& error) {
         error = "no EGL display";
         return false;
     }
-    const EGLint attributes[] = {EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
-                                 EGL_SURFACE_TYPE,    EGL_WINDOW_BIT,
-                                 EGL_RED_SIZE,        8,
-                                 EGL_GREEN_SIZE,      8,
-                                 EGL_BLUE_SIZE,       8,
-                                 EGL_NONE};
+    // With a depth buffer, for the hands' parts to hide each other (hands/hand_renderer.h);
+    // without one if there's none to be had.
+    EGLint attributes[] = {EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
+                           EGL_SURFACE_TYPE,    EGL_WINDOW_BIT,
+                           EGL_RED_SIZE,        8,
+                           EGL_GREEN_SIZE,      8,
+                           EGL_BLUE_SIZE,       8,
+                           EGL_DEPTH_SIZE,      16,
+                           EGL_NONE};
     EGLConfig config;
     EGLint configs = 0;
     if (!eglChooseConfig(m_display, attributes, &config, 1, &configs) || configs == 0) {
-        error = "no EGL config";
-        return false;
+        attributes[std::size(attributes) - 3] = EGL_NONE;  // EGL_DEPTH_SIZE's place
+        if (!eglChooseConfig(m_display, attributes, &config, 1, &configs) || configs == 0) {
+            error = "no EGL config";
+            return false;
+        }
     }
     EGLint format = 0;
     eglGetConfigAttrib(m_display, config, EGL_NATIVE_VISUAL_ID, &format);
@@ -219,16 +218,18 @@ bool VideoRenderer::SetUpGl(std::string& error) {
     m_crop = m_program.Uniform("crop");
     m_pairView = m_program.Uniform("pairView");
     m_bufferSize = m_program.Uniform("bufferSize");
+    m_cursor = m_program.Uniform("cursor");
+    m_pictureAspect = m_program.Uniform("pictureAspect");
     glVertexAttribPointer(ShaderProgram::kPositionAttribute, 2, GL_FLOAT, GL_FALSE, 0, kQuad);
     glEnableVertexAttribArray(ShaderProgram::kPositionAttribute);
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_BLEND);
 
-    std::string roomError;
-    m_room = RoomRenderer::Create(m_display, m_procs, *m_releaser, roomError);
-    if (!m_room) {
-        __android_log_print(ANDROID_LOG_WARN, kTag, "no room view, the window shows as a game: %s",
-                            roomError.c_str());
+    std::string handsError;
+    m_hands = HandRenderer::Create(std::move(m_handsOptions), handsError);
+    if (!m_hands) {
+        __android_log_print(ANDROID_LOG_WARN, kTag, "no hands over the window: %s",
+                            handsError.c_str());
     }
     return true;
 }
@@ -242,7 +243,7 @@ void VideoRenderer::TearDown() {
         AImage_delete(m_held);
         m_held = nullptr;
     }
-    m_room.reset();  // its camera and textures need the context
+    m_hands.reset();  // its shader needs the context
     if (m_textures) {
         m_textures->Clear();
     }
@@ -273,12 +274,12 @@ void VideoRenderer::DrawLatest() {
         return;
     }
     m_shown = shown;
-    if (ShowsRoom(shown.view)) {
-        m_room->Enter();
-        Hold(image);  // DrawRoom draws it, every refresh
+    if (ShowsHands(shown.view)) {
+        m_hands->Enter();
+        Hold(image);  // DrawWithHands draws it, every refresh
         return;
     }
-    LeaveRoom();
+    StopHands();
     Draw(*texture, shown);
     // The decoder may write the buffer again once the GPU is done reading it.
     m_releaser->Release(image);
@@ -296,18 +297,19 @@ void VideoRenderer::RedrawIfResized() {
     }
 }
 
-bool VideoRenderer::ShowsRoom(const ViewInfo& view) const { return m_room && view.vr && view.app; }
+bool VideoRenderer::ShowsHands(const ViewInfo& view) const {
+    return m_hands && view.app && (view.vr || m_handsDebug);
+}
 
-bool VideoRenderer::InRoom() const { return m_room && m_room->Active(); }
+bool VideoRenderer::WithHands() const { return m_hands && m_hands->Active(); }
 
-void VideoRenderer::DrawRoom() {
+void VideoRenderer::DrawWithHands() {
     const HardwareBufferTextures::Texture* texture = m_textures->Find(m_shown.buffer);
     if (!texture) {
         return;
     }
-    eglQuerySurface(m_display, m_surface, EGL_WIDTH, &m_shownWidth);
-    eglQuerySurface(m_display, m_surface, EGL_HEIGHT, &m_shownHeight);
-    m_room->Draw(*texture, m_shown.crop, m_shown.view, m_shownWidth, m_shownHeight);
+    Draw(*texture, m_shown);
+    m_hands->Draw(m_shown.view, m_shownWidth, m_shownHeight);
     m_swapFailed = eglSwapBuffers(m_display, m_surface) != EGL_TRUE;
 }
 
@@ -316,13 +318,13 @@ void VideoRenderer::Hold(AImage* image) {
     m_held = image;
 }
 
-void VideoRenderer::LeaveRoom() {
-    if (!InRoom()) {
+void VideoRenderer::StopHands() {
+    if (!WithHands()) {
         return;
     }
     m_releaser->Release(m_held);
     m_held = nullptr;
-    m_room->Leave();
+    m_hands->Leave();
     m_swapFailed = false;
 }
 
@@ -336,7 +338,9 @@ void VideoRenderer::Draw(const HardwareBufferTextures::Texture& texture, const S
     if (texture.width == 0 || texture.height == 0 || width <= 0 || height <= 0) {
         return;
     }
-    m_program.Use();  // the room view draws with its own
+    m_program.Use();  // the hands draw with their own
+    // The hands point it at their mesh.
+    glVertexAttribPointer(ShaderProgram::kPositionAttribute, 2, GL_FLOAT, GL_FALSE, 0, kQuad);
 
     const AImageCropRect& c = shown.crop;
     float pictureWidth = float(c.right - c.left), pictureHeight = float(c.bottom - c.top);
@@ -347,6 +351,11 @@ void VideoRenderer::Draw(const HardwareBufferTextures::Texture& texture, const S
     glUniform4f(m_crop, float(c.left) / texture.width, float(c.top) / texture.height,
                 pictureWidth / texture.width, pictureHeight / texture.height);
     glUniform2f(m_bufferSize, float(texture.width), float(texture.height));
+    // The cursor of the viewer's hand pointing at the window, where it points in the picture.
+    const HandPointer::Cursor cursor = WithHands() ? m_hands->Cursor() : HandPointer::Cursor();
+    glUniform4f(m_cursor, cursor.x, cursor.y, kCursorRadius,
+                cursor.shown ? (cursor.pinched ? 2.0f : cursor.pinching) : -1.0f);
+    glUniform1f(m_pictureAspect, pictureWidth / pictureHeight);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_EXTERNAL_OES, texture.texture);
 

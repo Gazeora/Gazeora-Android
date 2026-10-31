@@ -11,7 +11,26 @@ uniform vec4 eyeLayout;  // VR (0/1), the lens center's x in the eye, eye aspect
 uniform vec4 crop;    // the picture in the buffer: left, top, width, height (0..1)
 uniform float pairView;  // the view of a pair this eye shows (0 left, 1 right); -1 no pair
 uniform vec2 bufferSize;  // in texels
+// The viewer's hand pointing at the window (hands/hand_pointer.h): where in the picture (0..1),
+// the ring's radius as a share of its height, and how near a pinch (0..1; 2 pinched; below 0
+// no cursor).
+uniform vec4 cursor;
+uniform float pictureAspect;
 varying vec2 uv;
+
+// `color` at `at` in the picture, with the cursor over it: a light ring with a dark edge, so it
+// shows on light and dark alike, closing in as a pinch nears, and filled once it pinches.
+vec3 WithCursor(vec3 color, vec2 at) {
+    if (cursor.w < 0.0) return color;
+    float r = length((at - cursor.xy) * vec2(pictureAspect, 1.0)) / cursor.z;
+    float pinched = step(1.5, cursor.w);
+    float ring = 1.0 - 0.4 * min(cursor.w, 1.0);
+    float edge = 1.0 - smoothstep(0.12, 0.3, abs(r - ring));
+    float line = 1.0 - smoothstep(0.06, 0.16, abs(r - ring));
+    float fill = pinched * (1.0 - smoothstep(ring - 0.1, ring, r));
+    color = mix(color, vec3(0.0), 0.5 * max(edge, fill));
+    return mix(color, vec3(1.0), max(line, fill * 0.9));
+}
 
 // Catmull-Rom bicubic in 9 bilinear taps (the middle two of each row and column merged into
 // one). Sharper than bilinear when the picture is scaled to the screen, and exact at 1:1: a
@@ -56,13 +75,15 @@ float Channel(vec2 q, int channel) {
 }
 void main() {
     if (eyeLayout.x == 0.0) {
-        gl_FragColor = vec4(Bicubic(InBuffer(uv)), 1.0);
+        gl_FragColor = vec4(WithCursor(Bicubic(InBuffer(uv)), uv), 1.0);
         return;
     }
     vec2 p = (uv - vec2(eyeLayout.y, 0.5)) * vec2(eyeLayout.z, 1.0) * 2.0;
     float r2 = dot(p, p);
     vec2 q = p * (1.0 + lens.x * r2 + lens.y * r2 * r2);
-    gl_FragColor = vec4(Channel(ThroughLens(q, 1.0 - lens.w), 0),
-                        Channel(ThroughLens(q, 1.0), 1),
-                        Channel(ThroughLens(q, 1.0 + lens.w), 2), 1.0);
+    vec2 at = ThroughLens(q, 1.0);
+    vec3 color = vec3(Channel(ThroughLens(q, 1.0 - lens.w), 0), Channel(at, 1),
+                      Channel(ThroughLens(q, 1.0 + lens.w), 2));
+    if (at.x >= 0.0 && at.y >= 0.0 && at.x <= 1.0 && at.y <= 1.0) color = WithCursor(color, at);
+    gl_FragColor = vec4(color, 1.0);
 }

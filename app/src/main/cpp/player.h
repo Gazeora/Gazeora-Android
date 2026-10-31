@@ -5,6 +5,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <vector>
 
 #include "pointer/pointer_sender.h"
 #include "sources/stream_source.h"
@@ -31,12 +32,10 @@ public:
         // How the picture is shown: for a VR viewer or flat, and its size; again whenever
         // either changes. Touches only make sense on a flat one.
         virtual void OnPicture(bool vr, int width, int height) = 0;
-        // Once, when the room view needs the 360 scene: answer with SetPanorama.
-        virtual void OnPanoramaWanted() = 0;
     };
 
-    // Takes over `window`'s reference.
-    Player(ANativeWindow* window, DecoderChoice decoders, Listener& listener);
+    // Takes over `window`'s reference. The viewer's hands are set up as `hands` says.
+    Player(ANativeWindow* window, DecoderChoice decoders, HandsOptions hands, Listener& listener);
     ~Player() override;
     Player(const Player&) = delete;
     Player& operator=(const Player&) = delete;
@@ -48,12 +47,12 @@ public:
                const std::string& path);
     // A touch for the PC's mouse, on the way the stream came. Doesn't block.
     void SendPointer(const PointerEvent& event);
-    // The display's turn (Surface.ROTATION_*) and density, for the room view.
+    // The display's turn (Surface.ROTATION_*) and density, for the hands.
     void SetScreen(int quarterTurns, float dotsPerInch);
-    // The room view's 360 scene.
-    void SetPanorama(Panorama::Pixels pixels);
 
 private:
+    // `hands`, the viewer's hand pointing at the window moving the PC's pointer.
+    HandsOptions PointingHere(HandsOptions hands);
     void OnFrame(AccessUnit&& frame) override;
     void OnStatus(PlayerStatus status, const std::string& detail) override;
     void OnVideoSize(int width, int height) override;

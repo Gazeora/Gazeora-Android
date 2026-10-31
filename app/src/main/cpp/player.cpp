@@ -9,11 +9,11 @@
 
 namespace gazeora {
 
-Player::Player(ANativeWindow* window, DecoderChoice decoders, Listener& listener)
+Player::Player(ANativeWindow* window, DecoderChoice decoders, HandsOptions hands,
+               Listener& listener)
     : m_listener(listener),
       m_window(window),
-      m_renderer(
-          std::make_unique<VideoRenderer>(window, [this] { m_listener.OnPanoramaWanted(); })) {
+      m_renderer(std::make_unique<VideoRenderer>(window, PointingHere(std::move(hands)))) {
     std::string error;
     if (!m_renderer->Start(error)) {
         __android_log_print(ANDROID_LOG_WARN, "GazeoraPlayer", "showing frames as they are: %s",
@@ -61,6 +61,11 @@ bool Player::Start(const std::string& protocol, const std::string& host, uint16_
     return true;
 }
 
+HandsOptions Player::PointingHere(HandsOptions hands) {
+    hands.pointer = [this](const PointerEvent& event) { SendPointer(event); };
+    return hands;
+}
+
 void Player::SendPointer(const PointerEvent& event) {
     if (m_pointer) {
         m_pointer->Send(event);
@@ -70,12 +75,6 @@ void Player::SendPointer(const PointerEvent& event) {
 void Player::SetScreen(int quarterTurns, float dotsPerInch) {
     if (m_renderer) {
         m_renderer->SetScreen(quarterTurns, dotsPerInch);
-    }
-}
-
-void Player::SetPanorama(Panorama::Pixels pixels) {
-    if (m_renderer) {
-        m_renderer->SetPanorama(std::move(pixels));
     }
 }
 

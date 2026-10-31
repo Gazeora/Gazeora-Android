@@ -22,6 +22,8 @@ public:
     bool Build(const char* vertexSource, const char* fragmentSource, std::string& error);
     void Use() const { glUseProgram(m_program); }
     GLint Uniform(const char* name) const { return glGetUniformLocation(m_program, name); }
+    // Any attribute but `position`; -1 if the program has none by that name.
+    GLint Attribute(const char* name) const { return glGetAttribLocation(m_program, name); }
     // Before the context goes.
     void Release();
 

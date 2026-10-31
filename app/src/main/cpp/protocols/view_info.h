@@ -19,7 +19,8 @@ struct ViewInfo {
     // The frame holds two views side by side, the left eye's on the left, each squeezed to
     // half the width (3D).
     bool pair = false;
-    // The frame is Gazeora's own window (src=app), not a game: with vr, it floats in the room.
+    // The frame is Gazeora's own window (src=app), not a game: with vr, the viewer's hands show
+    // over it.
     bool app = false;
     float k1 = 0.34f;
     float k2 = 0.55f;
