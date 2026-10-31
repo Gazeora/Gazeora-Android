@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Nithin Aashik
+// SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-Gazeora-Commercial
+
 // The viewer's rigged hands over Gazeora's window in a VR viewer (hand_renderer.cpp), drawn the
 // way VR headsets draw tracked hands: one cool, light color, a little see-through, brighter
 // where the surface turns away, inside a translucent light outline, both fading out toward

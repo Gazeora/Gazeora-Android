@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Nithin Aashik
+// SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-Gazeora-Commercial
+
 package com.gazeora.gazeora.feature.connect.presentation;
 
 import android.content.Intent;
@@ -10,9 +13,11 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.splashscreen.SplashScreen;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.gazeora.gazeora.BuildConfig;
 import com.gazeora.gazeora.R;
 import com.gazeora.gazeora.core.stream.domain.model.StreamProtocol;
 import com.gazeora.gazeora.core.stream.domain.model.StreamTarget;
+import com.gazeora.gazeora.feature.connect.presentation.components.AboutView;
 import com.gazeora.gazeora.feature.connect.presentation.components.ManualEntryView;
 import com.gazeora.gazeora.feature.connect.presentation.components.NetworkPermissionRequester;
 import com.gazeora.gazeora.feature.connect.presentation.components.PcListView;
@@ -80,6 +85,7 @@ public final class MainActivity extends AppCompatActivity implements ConnectEven
     private void bindViews(boolean freshLaunch) {
         PcListView pcList = new PcListView(this, new PcListListener());
         ManualEntryView manualEntry = new ManualEntryView(this, new ManualEntryListener());
+        new AboutView(this).render(BuildConfig.VERSION_NAME);
         if (freshLaunch) {
             manualEntry.setAddress(viewModel.getInitialAddress());
         }

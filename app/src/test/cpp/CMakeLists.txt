@@ -1,3 +1,6 @@
+# Copyright (C) 2026 Nithin Aashik
+# SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-Gazeora-Commercial
+
 # Host tests for the native client's protocol code (app/src/main/cpp/protocols) and the hands'
 # geometry and camera pictures (app/src/main/cpp/hands), which have no Android in them. Build with any
 # desktop C++17 compiler:

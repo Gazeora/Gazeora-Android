@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Nithin Aashik
+// SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-Gazeora-Commercial
+
 // The Java side's way in: NativePlayer.java, NativeDiscovery.java and NativeUsbLink.java.
 
 #include <android/asset_manager_jni.h>

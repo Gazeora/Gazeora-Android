@@ -149,6 +149,32 @@
                 android:text="@string/connect_watch"
                 android:textAllCaps="false"
                 android:textSize="15sp" />
+
+            <TextView
+                style="@style/TextAppearance.Gazeora.Section"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="28dp"
+                android:text="@string/about_title" />
+
+            <!-- Required in every version by NOTICE's additional terms (GPLv3 section 7(b)). -->
+            <TextView
+                android:id="@+id/about_attribution"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textColor="?android:attr/textColorPrimary"
+                android:textSize="14sp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:autoLink="web"
+                android:text="@string/about_license"
+                android:textColor="?android:attr/textColorTertiary"
+                android:textColorLink="@color/gazeora_accent"
+                android:textSize="12sp" />
         </com.gazeora.gazeora.core.ui.MaxWidthLinearLayout>
     </LinearLayout>
 </ScrollView>

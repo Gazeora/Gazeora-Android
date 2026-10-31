@@ -1,3 +1,6 @@
+# Copyright (C) 2026 Nithin Aashik
+# SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-Gazeora-Commercial
+
 cmake_minimum_required(VERSION 3.22.1)
 project(gazeora_client CXX)
 

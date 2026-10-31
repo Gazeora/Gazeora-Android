@@ -214,3 +214,7 @@ attribution "Gazeora by Nithin Aashik" where they show information about themsel
 as modified, and don't use the Gazeora name or logo as their own
 ([TRADEMARKS.md](TRADEMARKS.md)). The libraries and the hand model the app is built with are
 listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+Gazeora for Android is also available under a commercial license, for products that can't
+follow the GPL, such as closed-source apps or hardware that builds it in. Royalties and terms
+are agreed with Nithin Aashik: see [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md).

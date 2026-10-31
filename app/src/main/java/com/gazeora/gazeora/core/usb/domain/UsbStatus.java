@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Nithin Aashik
+// SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-Gazeora-Commercial
+
 package com.gazeora.gazeora.core.usb.domain;
 
 /** Where getting the USB connection to the PC stands. */

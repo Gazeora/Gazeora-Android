@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Nithin Aashik
+// SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-Gazeora-Commercial
+
 // A quad over the viewport, with texture coordinates from the top left (video_renderer.cpp).
 attribute vec2 position;
 varying vec2 uv;

@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Nithin Aashik
+// SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-Gazeora-Commercial
+
 // The corners of the viewer's rigged hands (hands/rigged_hand.h), per eye: from the camera's
 // space to where the eye's lens shows them on the screen, by the inverse of video.frag's lens
 // warp (solved for the radius by Newton's method), with their distance for the depth test.
