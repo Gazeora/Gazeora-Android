@@ -5,6 +5,7 @@
 
 #include <android/log.h>
 
+#include "build_features.h"
 #include "head/rotation_sensor.h"
 #include "sources/http_source.h"
 #include "sources/rtsp_source.h"
@@ -74,7 +75,9 @@ bool Player::Start(const std::string& protocol, const std::string& host, uint16_
 
 HandsOptions Player::PointingHere(HandsOptions hands) {
     hands.pointer = [this](const PointerEvent& event) { SendPointer(event); };
-    hands.cameraStatus = [this](const CameraReport& report) { SendCameraStatus(report); };
+    if (BuildFeatures::kStreamOverlay) {
+        hands.cameraStatus = [this](const CameraReport& report) { SendCameraStatus(report); };
+    }
     return hands;
 }
 

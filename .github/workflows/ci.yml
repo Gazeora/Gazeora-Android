@@ -60,7 +60,7 @@ jobs:
           build/host-tests/hands_test
 
       - name: Build the debug APK
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleDebug -Pgazeora.streamOverlay=false
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
@@ -133,7 +133,7 @@ jobs:
           GAZEORA_KEYSTORE_PASSWORD: ${{ secrets.GAZEORA_KEYSTORE_PASSWORD }}
           GAZEORA_KEY_ALIAS: ${{ secrets.GAZEORA_KEY_ALIAS }}
           GAZEORA_KEY_PASSWORD: ${{ secrets.GAZEORA_KEY_PASSWORD }}
-        run: ./gradlew assembleRelease
+        run: ./gradlew assembleRelease -Pgazeora.streamOverlay=false
 
       - name: Check the signature and name the APK
         env:

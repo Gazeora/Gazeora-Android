@@ -50,7 +50,8 @@ The PC side is the separate **Gazeora** project. This app is only the viewer.
   one hand is never taken for two. The camera's picture never shows. Games show without any
   of this. In the dark, where it can't find hands anyway, the camera goes off after 3 seconds
   to save power, and comes on for a moment every 10 seconds to see whether the light is back.
-  How it stands goes to the PC, for its stream overlay.
+  How it stands goes to the PC, for its stream overlay, unless the app is built with
+  `-Pgazeora.streamOverlay=false`, as CI's builds and the released APKs are.
 - **Steady in the viewer.** While the picture is for a VR viewer, the screen stays in the
   landscape it was in, so tilting the head doesn't turn it over.
 - **Manual connection.** You can type a `host[:port]` instead. The app remembers the last one.

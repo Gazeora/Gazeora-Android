@@ -171,6 +171,11 @@ android {
             cmake {
                 arguments += "-DLITERT_DIR=" +
                     layout.buildDirectory.dir("litert").get().asFile.invariantSeparatorsPath
+                // -Pgazeora.streamOverlay=false leaves out the camera status for the PC's
+                // stream overlay (CI builds without it).
+                val streamOverlay = providers.gradleProperty("gazeora.streamOverlay")
+                    .map { it.toBoolean() }.getOrElse(true)
+                arguments += "-DGAZEORA_STREAM_OVERLAY=" + if (streamOverlay) "ON" else "OFF"
             }
         }
     }
