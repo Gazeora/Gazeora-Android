@@ -175,6 +175,16 @@
                 android:textColor="?android:attr/textColorTertiary"
                 android:textColorLink="@color/gazeora_accent"
                 android:textSize="12sp" />
+
+            <!-- Opens a new GitHub issue with the app and phone already described. -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/report_problem"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="@string/about_report_problem"
+                android:textAllCaps="false" />
         </com.gazeora.gazeora.core.ui.MaxWidthLinearLayout>
     </LinearLayout>
 </ScrollView>

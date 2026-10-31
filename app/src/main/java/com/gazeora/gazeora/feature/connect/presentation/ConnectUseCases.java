@@ -10,6 +10,7 @@ import com.gazeora.gazeora.feature.connect.domain.usecase.GetInitialProtocolUseC
 import com.gazeora.gazeora.feature.connect.domain.usecase.NeedsLocalNetworkPermissionUseCase;
 import com.gazeora.gazeora.feature.connect.domain.usecase.ParseStreamAddressUseCase;
 import com.gazeora.gazeora.feature.connect.domain.usecase.SaveManualConnectionUseCase;
+import com.gazeora.gazeora.feature.report.domain.usecase.CreateIssueLinkUseCase;
 
 import javax.inject.Inject;
 
@@ -20,18 +21,21 @@ public final class ConnectUseCases {
     private final GetInitialAddressUseCase initialAddress;
     private final GetInitialProtocolUseCase initialProtocol;
     private final SaveManualConnectionUseCase saveConnection;
+    private final CreateIssueLinkUseCase issueLink;
 
     @Inject
     public ConnectUseCases(@NonNull ParseStreamAddressUseCase parseAddress,
             @NonNull NeedsLocalNetworkPermissionUseCase needsPermission,
             @NonNull GetInitialAddressUseCase initialAddress,
             @NonNull GetInitialProtocolUseCase initialProtocol,
-            @NonNull SaveManualConnectionUseCase saveConnection) {
+            @NonNull SaveManualConnectionUseCase saveConnection,
+            @NonNull CreateIssueLinkUseCase issueLink) {
         this.parseAddress = parseAddress;
         this.needsPermission = needsPermission;
         this.initialAddress = initialAddress;
         this.initialProtocol = initialProtocol;
         this.saveConnection = saveConnection;
+        this.issueLink = issueLink;
     }
 
     @NonNull
@@ -57,5 +61,10 @@ public final class ConnectUseCases {
     @NonNull
     public SaveManualConnectionUseCase saveConnection() {
         return saveConnection;
+    }
+
+    @NonNull
+    public CreateIssueLinkUseCase issueLink() {
+        return issueLink;
     }
 }
