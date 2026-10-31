@@ -10,6 +10,7 @@
 
 #include "hands/camera_frame.h"
 #include "hands/camera_light_gate.h"
+#include "hands/camera_status_reporter.h"
 #include "hands/hand_detection.h"
 #include "hands/hand_follower.h"
 #include "hands/hand_geometry.h"
@@ -1430,6 +1431,22 @@ TEST_F(CameraLightGateTest, ACameraThatWontOpenIsUnavailable) {
     gate.Update(failed, now);
     EXPECT_TRUE(gate.WantsCamera()) << "the feed tries again";
     EXPECT_EQ(gate.Status(), CameraState::Unavailable);
+}
+
+TEST(CameraStatusReporterTest, SendsChangesAtOnceAndRepeatsTheRest) {
+    std::vector<CameraReport> sent;
+    CameraStatusReporter reporter([&](const CameraReport& report) { sent.push_back(report); });
+    CameraReport report;
+    report.state = CameraState::On;
+    reporter.Report(report, 0);
+    reporter.Report(report, 500);
+    ASSERT_EQ(sent.size(), 1u);
+    report.state = CameraState::Dark;
+    reporter.Report(report, 600);
+    ASSERT_EQ(sent.size(), 2u);
+    reporter.Report(report, 600 + CameraStatusReporter::kRepeatEveryMs);
+    ASSERT_EQ(sent.size(), 3u);
+    EXPECT_EQ(sent.back().state, CameraState::Dark);
 }
 
 }  // namespace

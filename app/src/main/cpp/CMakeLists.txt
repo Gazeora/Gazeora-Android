@@ -28,6 +28,7 @@ target_compile_options(gazeora_protocols PRIVATE -Wall -Wextra)
 add_library(gazeora_hands_math STATIC
     hands/camera_frame.cpp
     hands/camera_light_gate.cpp
+    hands/camera_status_reporter.cpp
     hands/hand_detection.cpp
     hands/hand_follower.cpp
     hands/hand_geometry.cpp
@@ -79,6 +80,7 @@ add_library(gazeora_client SHARED
     gl/image_releaser.cpp
     hands/camera_feed.cpp
     hands/camera_setup.cpp
+    hands/camera_status_sender.cpp
     hands/hand_overlay.cpp
     hands/hand_models.cpp
     hands/hand_renderer.cpp

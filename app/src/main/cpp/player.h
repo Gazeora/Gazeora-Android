@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 
+#include "hands/camera_status_sender.h"
 #include "head/head_tracker.h"
 #include "links/message_link.h"
 #include "pointer/pointer_sender.h"
@@ -53,11 +54,13 @@ public:
                const std::string& path);
     // A touch for the PC's mouse, on the way the stream came. Doesn't block.
     void SendPointer(const PointerEvent& event);
+    void SendCameraStatus(const CameraReport& report);
     // The display's turn (Surface.ROTATION_*) and density, for the hands and the head.
     void SetScreen(int quarterTurns, float dotsPerInch);
 
 private:
-    // `hands`, the viewer's hand pointing at the window moving the PC's pointer.
+    // `hands`, the viewer's hand pointing at the window moving the PC's pointer, and the
+    // camera's status going to the PC.
     HandsOptions PointingHere(HandsOptions hands);
     void OnFrame(AccessUnit&& frame) override;
     void OnStatus(PlayerStatus status, const std::string& detail) override;
@@ -74,6 +77,7 @@ private:
     std::unique_ptr<StreamSource> m_source;
     std::shared_ptr<MessageLink> m_link;
     std::unique_ptr<PointerSender> m_pointer;
+    std::unique_ptr<CameraStatusSender> m_cameraStatus;
     std::unique_ptr<HeadTracker> m_head;
     int m_quarterTurns = 0;
 

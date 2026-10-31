@@ -71,6 +71,7 @@ HandRenderer::HandRenderer(HandsOptions options)
       m_camera([this](const YuvPlanes& yuv, const CameraView& view, int64_t timestampNs) {
           m_tracker.Track(yuv, view, timestampNs);
       }),
+      m_cameraStatus(std::move(options.cameraStatus)),
       m_making(std::async(std::launch::async, [] { return &RiggedHand::Get(); })) {}
 
 bool HandRenderer::Build(std::string& error) {
@@ -222,6 +223,10 @@ void HandRenderer::PowerCamera() {
     } else {
         m_camera.Poll();
     }
+    CameraReport report;
+    report.state = m_gate.Status();
+    report.brightness = uint8_t(std::lround(std::clamp(seen.brightness, 0.0f, 1.0f) * 255));
+    m_cameraStatus.Report(report, now);
 }
 
 void HandRenderer::Pose(const std::vector<HandSkeleton>& skeletons, double now) {
