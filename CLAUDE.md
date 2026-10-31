@@ -250,4 +250,3 @@ The Android-specific guidance at the end of this section supplements it; it does
 - [ ] UI instructions match current screens and resource strings.
 - [ ] Gradle commands and module names have been verified.
 - [ ] Android examples use the language and UI toolkit already used in the relevant module.
-
