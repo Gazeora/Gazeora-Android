@@ -26,6 +26,7 @@ constexpr size_t kGzfMaxDatagram = 1400;
 constexpr int kGzfHelloEveryMs = 1000;
 
 // Pointer: a touch for the PC's mouse (pointer_message.h). Challenge: the PC's cookie (UDP).
+// HeadPose: where the viewer's head points (head_pose_message.h).
 enum class GzfType : uint8_t {
     Frame = 1,
     Hello = 2,
@@ -33,6 +34,7 @@ enum class GzfType : uint8_t {
     Bye = 4,
     Pointer = 5,
     Challenge = 6,
+    HeadPose = 7,
 };
 
 constexpr uint8_t kGzfKeyFrame = 1;

@@ -13,6 +13,7 @@ add_library(gazeora_protocols STATIC
     protocols/discovery_reply.cpp
     protocols/frame_assembler.cpp
     protocols/gzf.cpp
+    protocols/head_pose_message.cpp
     protocols/pointer_message.cpp
     protocols/rtp_depacketizer.cpp
     protocols/rtsp_message.cpp

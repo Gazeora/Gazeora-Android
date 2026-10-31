@@ -10,6 +10,7 @@
 #include "protocols/discovery_reply.h"
 #include "protocols/frame_assembler.h"
 #include "protocols/gzf.h"
+#include "protocols/head_pose_message.h"
 #include "protocols/pointer_message.h"
 #include "protocols/rtp_depacketizer.h"
 #include "protocols/rtsp_message.h"
@@ -214,6 +215,29 @@ TEST(PointerMessageTest, KeepsCoordinatesInThePicture) {
     const uint8_t* payload = message.data() + kGzfHeaderSize;
     EXPECT_EQ(payload[2] << 8 | payload[3], 0);
     EXPECT_EQ(payload[4] << 8 | payload[5], 65535);
+}
+
+TEST(HeadPoseMessageTest, IsAGzfMessageWithItsPayload) {
+    HeadPose pose;
+    pose.sample = 0x01020304;
+    pose.x = -1.0f;
+    pose.y = 0.5f;
+    pose.z = 0.0f;
+    pose.w = 1.0f;
+    Bytes message = HeadPoseMessage(pose);
+    ASSERT_EQ(message.size(), kGzfHeaderSize + kHeadPosePayloadSize);
+
+    GzfHeader header;
+    ASSERT_TRUE(GzfHeader::Read(message.data(), message.size(), header));
+    EXPECT_EQ(header.type, uint8_t(GzfType::HeadPose));
+    EXPECT_EQ(header.tail, kHeadPosePayloadSize);
+    const uint8_t* payload = message.data() + kGzfHeaderSize;
+    EXPECT_EQ(payload[0], 1);
+    EXPECT_EQ(payload[3], 4);
+    EXPECT_EQ(int16_t(payload[4] << 8 | payload[5]), -32767);
+    EXPECT_EQ(int16_t(payload[6] << 8 | payload[7]), 16384);
+    EXPECT_EQ(int16_t(payload[8] << 8 | payload[9]), 0);
+    EXPECT_EQ(int16_t(payload[10] << 8 | payload[11]), 32767);
 }
 
 class FrameAssemblerTest : public ::testing::Test {
