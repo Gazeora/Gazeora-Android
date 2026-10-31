@@ -59,7 +59,8 @@ bool Player::Start(const std::string& protocol, const std::string& host, uint16_
     } else {
         return false;
     }
-    m_pointer = CreatePointerSender(protocol, host);
+    m_link = CreateMessageLink(protocol, host);
+    m_pointer = CreatePointerSender(m_link);
     m_source->Start();
     return true;
 }

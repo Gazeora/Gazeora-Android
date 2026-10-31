@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 
+#include "links/message_link.h"
 #include "pointer/pointer_sender.h"
 #include "sources/stream_source.h"
 #include "video_decoder.h"
@@ -69,6 +70,7 @@ private:
     std::unique_ptr<VideoRenderer> m_renderer;  // null when the decoder draws straight to it
     std::unique_ptr<VideoDecoder> m_decoder;
     std::unique_ptr<StreamSource> m_source;
+    std::shared_ptr<MessageLink> m_link;
     std::unique_ptr<PointerSender> m_pointer;
 
     std::mutex m_pictureMutex;

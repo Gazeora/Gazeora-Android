@@ -74,12 +74,13 @@ add_library(gazeora_client SHARED
     hands/hand_renderer.cpp
     hands/hand_tracker.cpp
     jni.cpp
+    links/message_link_factory.cpp
+    links/udp_message_link.cpp
+    links/usb_message_link.cpp
     net.cpp
     player.cpp
-    pointer/pointer_sender_factory.cpp
+    pointer/link_pointer_sender.cpp
     pointer/queued_pointer_sender.cpp
-    pointer/udp_pointer_sender.cpp
-    pointer/usb_pointer_sender.cpp
     shaders/shader_program.cpp
     video_decoder.cpp
     video_renderer.cpp

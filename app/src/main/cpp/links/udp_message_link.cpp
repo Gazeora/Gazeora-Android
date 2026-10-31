@@ -1,30 +1,31 @@
 // Copyright (C) 2026 Nithin Aashik
 // SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-Gazeora-Commercial
 
-#include "pointer/udp_pointer_sender.h"
+#include "links/udp_message_link.h"
 
 #include <android/log.h>
 #include <sys/socket.h>
 
 #include <cerrno>
 
+#include "protocols/pointer_message.h"
+
 namespace gazeora {
 
 namespace {
 
-constexpr char kTag[] = "GazeoraPointer";
+constexpr char kTag[] = "GazeoraInput";
 
 }  // namespace
 
-void UdpPointerSender::Send(const PointerEvent& event) {
-    if (!Connect()) {
-        return;
+void UdpMessageLink::Write(const std::vector<uint8_t>& message) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (Connect()) {
+        send(m_fd.Get(), message.data(), message.size(), MSG_NOSIGNAL);
     }
-    std::vector<uint8_t> message = PointerMessage(event);
-    send(m_fd.Get(), message.data(), message.size(), MSG_NOSIGNAL);
 }
 
-bool UdpPointerSender::Connect() {
+bool UdpMessageLink::Connect() {
     if (m_fd || m_failed) {
         return bool(m_fd);
     }
@@ -38,8 +39,8 @@ bool UdpPointerSender::Connect() {
         m_fd.Reset();
     }
     if (!m_fd) {
-        m_failed = true;  // touches stay on the phone; the stream goes on
-        __android_log_print(ANDROID_LOG_WARN, kTag, "no touch input: %s", error.c_str());
+        m_failed = true;  // input stays on the phone; the stream goes on
+        __android_log_print(ANDROID_LOG_WARN, kTag, "no input to the PC: %s", error.c_str());
     }
     return bool(m_fd);
 }
