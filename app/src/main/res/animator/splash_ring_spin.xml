@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Turns a ring about the vertical axis. Easing scaleX this way traces cos(angle),
+     so the turn looks like a real 3D rotation. -->
+<objectAnimator xmlns:android="http://schemas.android.com/apk/res/android"
+    android:propertyName="scaleX"
+    android:valueFrom="1"
+    android:valueTo="-1"
+    android:valueType="floatType"
+    android:duration="@integer/splash_ring_half_turn_ms"
+    android:repeatCount="infinite"
+    android:repeatMode="reverse"
+    android:interpolator="@android:interpolator/accelerate_decelerate" />

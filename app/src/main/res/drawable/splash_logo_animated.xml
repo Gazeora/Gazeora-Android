@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The splash logo with both rings around the eye spinning about its axis. -->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/splash_logo">
+    <target
+        android:name="globe"
+        android:animation="@animator/splash_ring_spin" />
+    <target
+        android:name="orbit_back"
+        android:animation="@animator/splash_ring_spin" />
+    <target
+        android:name="orbit_gap"
+        android:animation="@animator/splash_ring_spin" />
+    <target
+        android:name="orbit_front"
+        android:animation="@animator/splash_ring_spin" />
+</animated-vector>

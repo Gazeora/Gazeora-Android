@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Half a turn of the splash rings; a full turn takes twice this. -->
+    <integer name="splash_ring_half_turn_ms">900</integer>
+    <!-- The splash icon animation length Android 12+ is told; 1000ms is its limit. -->
+    <integer name="splash_icon_animation_ms">1000</integer>
+</resources>

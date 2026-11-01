@@ -52,11 +52,13 @@
         <item name="cornerSize">10dp</item>
     </style>
 
-    <!-- The splash: the logo and name on the brand background. MainActivity holds it briefly,
-         then fades it out. -->
+    <!-- The splash: the logo and name on the brand background, with the rings spinning
+         (Android 12+; older versions show it still). MainActivity holds it briefly, then
+         fades it out. -->
     <style name="Theme.Gazeora.Starting" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/gazeora_window_bg</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_logo</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_logo_animated</item>
+        <item name="windowSplashScreenAnimationDuration">@integer/splash_icon_animation_ms</item>
         <item name="postSplashScreenTheme">@style/Theme.Gazeora</item>
     </style>
 </resources>
