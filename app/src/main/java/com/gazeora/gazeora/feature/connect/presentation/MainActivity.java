@@ -21,6 +21,7 @@ import com.gazeora.gazeora.R;
 import com.gazeora.gazeora.core.stream.domain.model.StreamProtocol;
 import com.gazeora.gazeora.core.stream.domain.model.StreamTarget;
 import com.gazeora.gazeora.feature.connect.presentation.components.AboutView;
+import com.gazeora.gazeora.feature.connect.presentation.components.HomeLogoView;
 import com.gazeora.gazeora.feature.connect.presentation.components.ManualEntryView;
 import com.gazeora.gazeora.feature.connect.presentation.components.NetworkPermissionRequester;
 import com.gazeora.gazeora.feature.connect.presentation.components.PcListView;
@@ -95,6 +96,7 @@ public final class MainActivity extends AppCompatActivity implements ConnectEven
     }
 
     private void bindViews(boolean freshLaunch) {
+        new HomeLogoView(this).spin();
         PcListView pcList = new PcListView(this, new PcListListener());
         ManualEntryView manualEntry = new ManualEntryView(this, new ManualEntryListener());
         new AboutView(this, this::onReportProblem).render(BuildConfig.VERSION_NAME);
